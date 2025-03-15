@@ -1,4 +1,4 @@
-import { createClient } from "@libsql/client/.";
+import { createClient } from "@libsql/client";
 import { Module } from "@nestjs/common";
 import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
 import env from "src/config";

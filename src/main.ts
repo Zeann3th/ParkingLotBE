@@ -1,12 +1,13 @@
+import env from './config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './modules/app.module';
-import env from './config';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as morgan from 'morgan';
 import * as compression from 'compression';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 
 const setMiddleware = (app: NestExpressApplication) => {
   app.use(compression());
@@ -22,6 +23,13 @@ const setMiddleware = (app: NestExpressApplication) => {
 
   app.use(morgan("combined"));
 
+  app.use(cookieParser());
+
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+  }))
+
 }
 
 async function bootstrap() {
@@ -36,7 +44,7 @@ async function bootstrap() {
 
   setMiddleware(app);
 
-  if (env.NODE_ENV !== "prod") {
+  if (env.NODE_ENV !== "producttion") {
     const swaggerConfig = new DocumentBuilder()
       .setTitle("Parking Lot")
       .setDescription('API documentation for Parking Lot Backend')
@@ -52,7 +60,7 @@ async function bootstrap() {
 
 
   await app.listen(env.PORT, () => {
-    logger.log("🚀 Parking Lot BE 0.1.0");
+    logger.log(`🚀 Parking Lot BE 0.1.0 on http://localhost:${env.PORT}`);
   });
 }
 
