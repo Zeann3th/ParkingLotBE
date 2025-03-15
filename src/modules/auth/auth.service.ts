@@ -62,7 +62,7 @@ export class AuthService {
         .set({ refreshToken })
         .where(eq(users.refreshToken, refreshToken))
     }
-    return;
+    return {};
   }
 
   async refresh(refreshToken: string) {

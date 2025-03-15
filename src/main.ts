@@ -44,7 +44,7 @@ async function bootstrap() {
 
   setMiddleware(app);
 
-  if (env.NODE_ENV !== "producttion") {
+  if (env.NODE_ENV !== "production") {
     const swaggerConfig = new DocumentBuilder()
       .setTitle("Parking Lot")
       .setDescription('API documentation for Parking Lot Backend')

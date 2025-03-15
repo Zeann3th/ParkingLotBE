@@ -43,15 +43,16 @@ export class AuthController {
   @ApiResponse({ status: 404, description: "User not found" })
   @ApiResponse({ status: 401, description: "Invalid password" })
   @Post('login')
+  @HttpCode(200)
   async login(@Body() body: LoginUserDto, @Res() response: Response) {
     const { accessToken, refreshToken } = await this.authService.login(body);
     response.cookie("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: env.NODE_ENV === "producttion" ? true : false,
+      secure: env.NODE_ENV === "production" ? true : false,
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/"
     });
-    return { access_token: accessToken }
+    return response.send({ access_token: accessToken });
   }
 
   @Get('refresh')
@@ -67,7 +68,6 @@ export class AuthController {
   @HttpCode(204)
   async logout(@Req() request: Request) {
     const refreshToken = request.cookies["refresh_token"]
-    await this.authService.logout(refreshToken)
-    return;
+    return this.authService.logout(refreshToken)
   }
 }
