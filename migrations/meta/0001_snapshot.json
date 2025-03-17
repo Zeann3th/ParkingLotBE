@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c486b5b9-f548-4eea-918b-960a2311a396",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "928a6f2a-0b45-4845-9bb6-498fbe35c82d",
+  "prevId": "c486b5b9-f548-4eea-918b-960a2311a396",
   "tables": {
     "parking_history": {
       "name": "parking_history",
@@ -122,7 +122,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "parking_sections_name_unique": {
+          "name": "parking_sections_name_unique",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -160,7 +168,15 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "parking_slots_name_unique": {
+          "name": "parking_slots_name_unique",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
         "parking_slots_section_id_parking_sections_id_fk": {
           "name": "parking_slots_section_id_parking_sections_id_fk",

@@ -1,8 +1,3 @@
-CREATE TABLE `parking_floors` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE `parking_history` (
 	`id` text PRIMARY KEY NOT NULL,
 	`slot_id` integer NOT NULL,
@@ -13,15 +8,13 @@ CREATE TABLE `parking_history` (
 	`ticket_id` integer,
 	`payment_status` text NOT NULL,
 	FOREIGN KEY (`slot_id`) REFERENCES `parking_slots`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `parking_sections` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
-	`floor_id` integer NOT NULL,
-	`capacity` integer NOT NULL,
-	FOREIGN KEY (`floor_id`) REFERENCES `parking_floors`(`id`) ON UPDATE no action ON DELETE cascade
+	`capacity` integer NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `parking_slots` (
@@ -36,8 +29,7 @@ CREATE TABLE `tickets` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`vehicle_number` text NOT NULL,
 	`ticket_type` text NOT NULL,
-	`valid_from` text NOT NULL,
-	`valid_to` text NOT NULL,
+	`status` text NOT NULL,
 	`price` integer NOT NULL
 );
 --> statement-breakpoint

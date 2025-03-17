@@ -11,15 +11,9 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
-export const floors = sqliteTable("parking_floors", {
-  id: integer().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
-});
-
 export const sections = sqliteTable("parking_sections", {
   id: integer().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
-  floorId: integer("floor_id").notNull().references(() => floors.id, { onDelete: "cascade" }),
+  name: text().unique().notNull(),
   capacity: integer().notNull(),
 });
 
@@ -34,7 +28,7 @@ export const userPrivileges = sqliteTable("user_privileges", {
 
 export const slots = sqliteTable("parking_slots", {
   id: integer().primaryKey({ autoIncrement: true }),
-  name: text().notNull(),
+  name: text().unique().notNull(),
   status: text({ enum: ["FREE", "OCCUPIED"] }).$default(() => "FREE").notNull(),
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
 });
@@ -43,8 +37,7 @@ export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
   vehicleNumber: text("vehicle_number").notNull(),
   ticketType: text("ticket_type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
-  validFrom: text("valid_from").notNull(),
-  validTo: text("valid_to").notNull(),
+  status: text("status", { enum: ["ACTIVE", "RETURNED", "LOST"] }).$default(() => "ACTIVE").notNull(),
   price: integer().notNull(),
 });
 
@@ -55,7 +48,7 @@ export const parkingHistory = sqliteTable("parking_history", {
   vehicleType: text("vehicle_type", { enum: ["CAR", "MOTORBIKE"] }).notNull(),
   checkedInAt: text("checked_in_at").$default(() => new Date().toISOString()).notNull(),
   checkedOutAt: text("checked_out_at"),
-  ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
+  ticketId: integer("ticket_id").references(() => tickets.id),
   paymentStatus: text("payment_status", { enum: ["PENDING", "PAID", "WAIVED"] }).$default(() => "PENDING").notNull(),
 });
 
