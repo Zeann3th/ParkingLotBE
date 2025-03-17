@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { LoginUserDto, RegisterUserDto } from './dto/authenticate-user.dto';
+import { LoginUserDto, RegisterUserDto } from './dto/user.dto';
 import * as bcrypt from 'bcrypt';
 import { users } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
@@ -50,7 +50,7 @@ export class AuthService {
     });
 
     await this.db.update(users)
-      .set({ refreshToken })
+      .set({ refreshToken, isAuthenticated: 1 })
       .where(eq(users.id, user.id))
 
     return { accessToken, refreshToken };
@@ -59,7 +59,7 @@ export class AuthService {
   async logout(refreshToken: string) {
     if (refreshToken) {
       await this.db.update(users)
-        .set({ refreshToken })
+        .set({ refreshToken, isAuthenticated: 0 })
         .where(eq(users.refreshToken, refreshToken))
     }
     return {};

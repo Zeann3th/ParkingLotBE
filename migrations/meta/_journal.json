@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1741933824131,
-      "tag": "0000_oval_toad",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1741940184362,
-      "tag": "0001_lonely_prima",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1741960269834,
-      "tag": "0002_parallel_gabe_jones",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1741960906457,
-      "tag": "0003_grey_frightful_four",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1741960990806,
-      "tag": "0004_graceful_timeslip",
+      "when": 1742189228594,
+      "tag": "0000_striped_vivisector",
       "breakpoints": true
     }
   ]
