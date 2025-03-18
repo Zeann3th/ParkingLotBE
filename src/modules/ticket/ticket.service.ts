@@ -29,10 +29,10 @@ export class TicketService {
 
     if (!validTo) {
       request.validTo = ticketType === "DAILY"
-        ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3)
-        : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+        ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
+        : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
     } else {
-      request.validTo = new Date(validTo);
+      request.validTo = new Date(validTo).toISOString();
     }
 
     await this.db.insert(tickets).values(request);
@@ -43,8 +43,8 @@ export class TicketService {
     let request = {
       ...ticketType && { ticketType },
       ...price && { price },
-      ...validFrom && { validFrom },
-      ...validTo && { validTo },
+      ...validFrom && { validFrom: new Date(validFrom).toISOString() },
+      ...validTo && { validTo: new Date(validTo).toISOString() },
     }
     return await this.db.update(tickets).set(request).where(eq(tickets.id, id)).returning();
   }

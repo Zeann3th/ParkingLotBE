@@ -1,25 +1,29 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { ParkingService } from './parking.service';
+import { CheckInDto } from './dto/check-in.dto';
+import { CustomRequest } from 'src/config/dto/request.dto';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { RolesGuard } from 'src/guards/role.guard';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('parking')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ParkingController {
   constructor(private readonly parkingService: ParkingService) { }
 
+  @ApiBearerAuth()
   @Post("check-in")
-  async checkIn() {
-    return await this.parkingService.checkIn();
+  async checkIn(@Request() req: CustomRequest, body: CheckInDto) {
+    return await this.parkingService.checkIn(req.user, body);
   }
 
+  @ApiBearerAuth()
   @Post("check-out")
-  async checkOut() {
+  async checkOut(body: any) {
     return await this.parkingService.checkOut();
   }
 
-  @Get("available-slots")
-  async getAvailableSlots() {
-    return await this.parkingService.getAvailableSlots();
-  }
-
+  @ApiBearerAuth()
   @Get("history")
   async getHistory() {
 

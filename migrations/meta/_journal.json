@@ -22,6 +22,34 @@
       "when": 1742271846142,
       "tag": "0002_cultured_master_mold",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1742286503659,
+      "tag": "0003_aberrant_pandemic",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1742286595637,
+      "tag": "0004_majestic_greymalkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1742288811867,
+      "tag": "0005_good_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1742289475488,
+      "tag": "0006_eminent_umar",
+      "breakpoints": true
     }
   ]
 }

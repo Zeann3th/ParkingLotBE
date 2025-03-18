@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, Request, HttpCode } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
-import { PrivilegeGuard } from 'src/guards/privilege.guard';
 import { SectionService } from './section.service';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
+import { CustomRequest } from 'src/config/dto/request.dto';
 
 @Controller('sections')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -17,7 +17,7 @@ export class SectionController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all sections" })
   @Get()
-  async getAll(@Request() req) {
+  async getAll(@Request() req: CustomRequest) {
     return await this.sectionService.getAll(req.user);
   }
 
@@ -26,9 +26,8 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return section" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
-  @UseGuards(PrivilegeGuard)
   @Get(":id")
-  async getById(@Request() req, @Param("id") id: number) {
+  async getById(@Request() req: CustomRequest, @Param("id") id: number) {
     return await this.sectionService.getById(req.user, id);
   }
 
@@ -88,7 +87,7 @@ export class SectionController {
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @Get(":id/slots")
-  async getAllSlots(@Request() req, @Param("id") id: number) {
+  async getAllSlots(@Request() req: CustomRequest, @Param("id") id: number) {
     return await this.sectionService.getAllSlots(req.user, id);
   }
 
@@ -98,7 +97,7 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return slot" })
   @ApiBearerAuth()
   @Get(":id/slots/:slotId")
-  async getSlotById(@Request() req, @Param("id") id: number, @Param("slotId") slotId: number) {
+  async getSlotById(@Request() req: CustomRequest, @Param("id") id: number, @Param("slotId") slotId: number) {
     return await this.sectionService.getSlotById(req.user, id, slotId);
   }
 }

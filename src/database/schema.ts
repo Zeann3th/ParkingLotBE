@@ -26,11 +26,17 @@ export const userPrivileges = sqliteTable("user_privileges", {
   };
 });
 
+export const vehicles = sqliteTable("vehicles", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  plate: text().unique().notNull(),
+  type: text({ enum: ["CAR", "MOTORBIKE"] }).notNull(),
+});
+
 export const slots = sqliteTable("parking_slots", {
   id: integer().primaryKey({ autoIncrement: true }),
-  name: text().unique().notNull(),
   status: text({ enum: ["FREE", "OCCUPIED"] }).$default(() => "FREE").notNull(),
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
 });
 
 export const tickets = sqliteTable("tickets", {
@@ -44,20 +50,10 @@ export const tickets = sqliteTable("tickets", {
 
 export const parkingHistory = sqliteTable("parking_history", {
   id: text().primaryKey().$default(() => crypto.randomUUID()),
-  slotId: integer("slot_id").notNull().references(() => slots.id, { onDelete: "cascade" }),
-  vehicleNumber: text("vehicle_number").notNull(),
-  vehicleType: text("vehicle_type", { enum: ["CAR", "MOTORBIKE"] }).notNull(),
+  slotId: integer("slot_id").notNull().references(() => slots.id, { onDelete: "set null" }),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "set null" }),
   checkedInAt: text("checked_in_at").$default(() => new Date().toISOString()).notNull(),
   checkedOutAt: text("checked_out_at"),
-  ticketId: integer("ticket_id").references(() => tickets.id),
+  ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
   paymentStatus: text("payment_status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
-});
-
-export const whitelistedVehicles = sqliteTable("whitelisted_vehicles", {
-  vehicleNumber: text("vehicle_number").notNull(),
-  slotId: integer("slot_id").notNull().references(() => slots.id, { onDelete: "cascade" }),
-}, (table) => {
-  return {
-    pk: primaryKey({ columns: [table.vehicleNumber, table.slotId] })
-  }
 });
