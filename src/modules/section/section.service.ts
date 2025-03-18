@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { sections, slots } from 'src/database/schema';
@@ -38,7 +38,16 @@ export class SectionService {
       ...name && { name },
       ...capacity && { capacity },
     }
-    return await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
+
+    try {
+      await this.db.update(sections).set(request).where(eq(sections.id, id));
+    }
+    catch (e: any) {
+      if (e.code === 'SQLITE_CONSTRAINT') {
+        throw new HttpException("Section name already exists", 409);
+      }
+      throw new HttpException("Failed to update section", 500);
+    }
   }
 
   async delete(id: number) {
@@ -57,12 +66,10 @@ export class SectionService {
     if (user.role !== "ADMIN" && !user.allowedSections.includes(sectionId)) {
       throw new HttpException("You are not allowed to view this section", 403);
     }
-    const [slot] = await this.db.select().from(slots).where(eq(slots.id, slotId));
+    const [slot] = await this.db.select().from(slots).where(and(
+      eq(slots.id, slotId),
+      eq(slots.sectionId, sectionId)
+    ));
     return slot;
-  }
-
-  async deleteSlot(user: any, sectionId: number, slotId: number) {
-    await this.db.delete(slots).where(eq(slots.id, slotId));
-    return {};
   }
 }

@@ -24,6 +24,7 @@ export class SectionController {
   @ApiOperation({ summary: "Get section by id", description: "Get section by id" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiResponse({ status: 200, description: "Return section" })
+  @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @UseGuards(PrivilegeGuard)
   @Get(":id")
@@ -61,6 +62,8 @@ export class SectionController {
     }
   })
   @ApiResponse({ status: 200, description: "Section updated successfully" })
+  @ApiResponse({ status: 409, description: "Section name already exists" })
+  @ApiResponse({ status: 500, description: "Failed to update section" })
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Patch(":id")
@@ -82,6 +85,7 @@ export class SectionController {
   @ApiOperation({ summary: "Get all slots of a section", description: "Get all slots of a section" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiResponse({ status: 200, description: "Return all slots" })
+  @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @Get(":id/slots")
   async getAllSlots(@Request() req, @Param("id") id: number) {

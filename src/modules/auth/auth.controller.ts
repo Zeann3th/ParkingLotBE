@@ -1,9 +1,13 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpException, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginUserDto, RegisterUserDto } from './dto/user.dto';
-import { ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
+import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import env from 'src/config';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { RolesGuard } from 'src/guards/role.guard';
+import { Roles } from 'src/decorators/role.decorator';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags("Authentication")
 @Controller('auth')
@@ -69,5 +73,15 @@ export class AuthController {
   async logout(@Req() request: Request) {
     const refreshToken = request.cookies["refresh_token"]
     return this.authService.logout(refreshToken)
+  }
+
+  @ApiOperation({ summary: "Update user credentials and privileges", description: "Update user credentials and privileges" })
+  @ApiResponse({ status: 200, description: "User updated successfully" })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch(":id")
+  async update(@Param("id") id: number, @Body() body: UpdateUserDto) {
+    return this.authService.update(id, body)
   }
 }

@@ -1,12 +1,13 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { LoginUserDto, RegisterUserDto } from './dto/user.dto';
+import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { users } from 'src/database/schema';
+import { userPrivileges, users } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { JwtService } from '@nestjs/jwt';
 import env from 'src/config';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -91,5 +92,36 @@ export class AuthService {
 
       throw new HttpException("Failed to refresh user's access token", 500);
     }
+  }
+
+  async update(id: number, { password, role, sectionIds }: UpdateUserDto) {
+    const updateData = {
+      ...(password && { password: await bcrypt.hash(password, 10) }),
+      ...(role && { role }),
+      updatedAt: new Date().toISOString()
+    };
+
+    await this.db.update(users)
+      .set(updateData)
+      .where(eq(users.id, id));
+
+    if (sectionIds !== undefined) {
+      await this.db.delete(userPrivileges)
+        .where(eq(userPrivileges.userId, id));
+
+      if (sectionIds.length > 0) {
+        await this.db.insert(userPrivileges)
+          .values(
+            sectionIds.map(sectionId => ({
+              userId: id,
+              sectionId
+            }))
+          );
+      }
+    }
+
+    return await this.db.query.users.findFirst({
+      where: eq(users.id, id)
+    });
   }
 }

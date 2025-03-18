@@ -35,9 +35,10 @@ export const slots = sqliteTable("parking_slots", {
 
 export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
-  vehicleNumber: text("vehicle_number").notNull(),
   ticketType: text("ticket_type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
-  status: text("status", { enum: ["ACTIVE", "RETURNED", "LOST"] }).$default(() => "ACTIVE").notNull(),
+  status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST"] }).$default(() => "AVAILABLE").notNull(),
+  validFrom: text("valid_from").$default(() => new Date().toISOString()).notNull(),
+  validTo: text("valid_to").notNull(),
   price: integer().notNull(),
 });
 
@@ -49,7 +50,7 @@ export const parkingHistory = sqliteTable("parking_history", {
   checkedInAt: text("checked_in_at").$default(() => new Date().toISOString()).notNull(),
   checkedOutAt: text("checked_out_at"),
   ticketId: integer("ticket_id").references(() => tickets.id),
-  paymentStatus: text("payment_status", { enum: ["PENDING", "PAID", "WAIVED"] }).$default(() => "PENDING").notNull(),
+  paymentStatus: text("payment_status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
 });
 
 export const whitelistedVehicles = sqliteTable("whitelisted_vehicles", {
