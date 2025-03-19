@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { ParkingService } from './parking.service';
 import { CheckInDto } from './dto/check-in.dto';
-import { CustomRequest } from 'src/config/dto/request.dto';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -24,10 +23,10 @@ export class ParkingController {
       }
     }
   })
-  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 201, description: "Success" })
   @ApiBearerAuth()
   @Post("check-in")
-  async checkIn(@Request() req: CustomRequest, @Body() body: CheckInDto) {
+  async checkIn(@Request() req, @Body() body: CheckInDto) {
     return await this.parkingService.checkIn(req.user, body);
   }
 
@@ -40,7 +39,7 @@ export class ParkingController {
       }
     }
   })
-  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 201, description: "Success" })
   @ApiBearerAuth()
   @Post("check-out")
   async checkOut(@Body() body: CheckOutDto) {

@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import env from 'src/config';
+import env from 'src/common';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';

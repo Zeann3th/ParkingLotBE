@@ -1,4 +1,3 @@
-import { unique } from "drizzle-orm/gel-core";
 import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
@@ -11,7 +10,6 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
-export type UserRole = "ADMIN" | "USER";
 
 export const sections = sqliteTable("parking_sections", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -34,7 +32,6 @@ export const vehicles = sqliteTable("vehicles", {
   type: text({ enum: ["CAR", "MOTORBIKE"] }).notNull(),
 });
 
-export type VehicleType = "CAR" | "MOTORBIKE";
 
 export const slots = sqliteTable("parking_slots", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -43,7 +40,6 @@ export const slots = sqliteTable("parking_slots", {
   vehicleId: integer("vehicle_id").references(() => vehicles.id)
 });
 
-export type SlotStatus = "FREE" | "OCCUPIED";
 
 export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -52,10 +48,6 @@ export const tickets = sqliteTable("tickets", {
   validFrom: text("valid_from").$default(() => new Date().toISOString()).notNull(),
   validTo: text("valid_to").notNull(),
 });
-
-export type TicketType = "MONTHLY" | "DAILY";
-
-export type TicketStatus = "AVAILABLE" | "INUSE" | "LOST";
 
 export const ticketPrices = sqliteTable("ticket_prices", {
   type: text("type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
@@ -73,4 +65,5 @@ export const parkingHistory = sqliteTable("parking_history", {
   checkedOutAt: text("checked_out_at"),
   ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
   paymentStatus: text("payment_status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
+  fee: real(),
 });

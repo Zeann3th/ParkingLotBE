@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Inject } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { eq } from 'drizzle-orm';
+import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { userPrivileges } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
@@ -20,7 +21,7 @@ export class RolesGuard implements CanActivate {
     if (!requiredRoles) return true;
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const user: UserInterface = request.user;
 
     if (!user || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException({
@@ -28,15 +29,14 @@ export class RolesGuard implements CanActivate {
       });
     }
 
-    if (user.role === "ADMIN") return true;
+    if (user.role === 'ADMIN') return true;
 
-    const allowedSections = (await this.db.select({ sectionId: userPrivileges.sectionId })
-      .from(userPrivileges)
-      .where(eq(userPrivileges.userId, user.id))
-    )
-      .map(({ sectionId }) => sectionId);
+    const privileges = await this.db.select({ sectionId: userPrivileges.sectionId }).from(userPrivileges)
+      .where(eq(userPrivileges.userId, user.sub));
 
-    request.user.allowedSections = allowedSections;
+    user.privileges = privileges.map((p) => p.sectionId);
+
+    request.user = user;
 
     return true;
   }

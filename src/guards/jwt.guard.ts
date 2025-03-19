@@ -1,6 +1,7 @@
 import { ExecutionContext, HttpException, Inject, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { eq } from 'drizzle-orm';
+import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { users } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
@@ -23,7 +24,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw new HttpException("User is not authenticated, please log in again", 401);
     }
 
-    const { password, ...safeUser } = user;
+    const safeUser: UserInterface = {
+      sub: user.id,
+      username: user.username,
+      role: user.role,
+      privileges: [],
+    }
     request.user = safeUser;
 
     return true;

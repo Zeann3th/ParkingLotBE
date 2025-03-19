@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, Request, HttpCode } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { SectionService } from './section.service';
@@ -6,7 +6,8 @@ import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
-import { CustomRequest } from 'src/config/dto/request.dto';
+import { User } from 'src/decorators/user.decorator';
+import { UserInterface } from 'src/common/types';
 
 @Controller('sections')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -17,8 +18,8 @@ export class SectionController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all sections" })
   @Get()
-  async getAll(@Request() req: CustomRequest) {
-    return await this.sectionService.getAll(req.user);
+  async getAll(@User() user: UserInterface) {
+    return await this.sectionService.getAll(user);
   }
 
   @ApiOperation({ summary: "Get section by id", description: "Get section by id" })
@@ -27,8 +28,8 @@ export class SectionController {
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @Get(":id")
-  async getById(@Request() req: CustomRequest, @Param("id") id: number) {
-    return await this.sectionService.getById(req.user, id);
+  async getById(@User() user: UserInterface, @Param("id") id: number) {
+    return await this.sectionService.getById(user, id);
   }
 
   @ApiOperation({ summary: "Create a new section", description: "Create a new section" })
@@ -87,8 +88,8 @@ export class SectionController {
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @Get(":id/slots")
-  async getAllSlots(@Request() req: CustomRequest, @Param("id") id: number) {
-    return await this.sectionService.getAllSlots(req.user, id);
+  async getAllSlots(@User() user: UserInterface, @Param("id") id: number) {
+    return await this.sectionService.getAllSlots(user, id);
   }
 
   @ApiOperation({ summary: "Get slot by id", description: "Get slot by id" })
@@ -97,7 +98,7 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return slot" })
   @ApiBearerAuth()
   @Get(":id/slots/:slotId")
-  async getSlotById(@Request() req: CustomRequest, @Param("id") id: number, @Param("slotId") slotId: number) {
-    return await this.sectionService.getSlotById(req.user, id, slotId);
+  async getSlotById(@User() user: UserInterface, @Param("id") id: number, @Param("slotId") slotId: number) {
+    return await this.sectionService.getSlotById(user, id, slotId);
   }
 }

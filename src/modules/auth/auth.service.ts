@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { userPrivileges, users } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { JwtService } from '@nestjs/jwt';
-import env from 'src/config';
+import env from 'src/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { TicketType } from "src/database/schema";
+import { TicketType } from "src/database/types";
 
 export class CreateTicketDto {
   @IsString()

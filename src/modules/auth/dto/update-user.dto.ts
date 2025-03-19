@@ -1,5 +1,5 @@
 import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
-import { UserRole } from "src/database/schema";
+import { UserRole } from "src/database/types";
 
 export class UpdateUserDto {
   @IsOptional()

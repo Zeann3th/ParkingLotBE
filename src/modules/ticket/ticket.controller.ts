@@ -35,8 +35,7 @@ export class TicketController {
     schema: {
       type: "object",
       properties: {
-        ticketType: { type: "string", example: "DAILY" },
-        price: { type: "number", example: 100 },
+        type: { type: "string", example: "DAILY" },
         validTo: { type: "string", example: "2022-12-31" }
       }
     }
@@ -55,8 +54,7 @@ export class TicketController {
       items: {
         type: "object",
         properties: {
-          ticketType: { type: "string", example: "DAILY" },
-          price: { type: "number", example: 100 },
+          type: { type: "string", example: "DAILY" },
           validTo: { type: "string", example: "2022-12-31" }
         }
       }
@@ -75,8 +73,7 @@ export class TicketController {
     schema: {
       type: "object",
       properties: {
-        ticketType: { type: "string", example: "DAILY" },
-        price: { type: "number", example: 100 },
+        type: { type: "string", example: "DAILY" },
         validTo: { type: "string", example: "2022-12-31" }
       }
     }
@@ -84,7 +81,7 @@ export class TicketController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Ticket updated successfully" })
   @Patch(":id")
-  async update(@Param("id") id: number, body: UpdateTicketDto) {
+  async update(@Param("id") id: number, @Body() body: UpdateTicketDto) {
     return await this.ticketService.update(id, body);
   }
 
