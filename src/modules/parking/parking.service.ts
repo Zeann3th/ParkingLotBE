@@ -175,6 +175,7 @@ export class ParkingService {
   }
 
   private async calculatePrice(ticketType: TicketType, vehicleType: VehicleType, start: string, end: string) {
+    //TODO: Need to check the valid date of ticket (monthly)
     const startDate = new Date(start);
     const endDate = new Date(end);
 

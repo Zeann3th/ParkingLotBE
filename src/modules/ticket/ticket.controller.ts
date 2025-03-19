@@ -81,7 +81,7 @@ export class TicketController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Ticket updated successfully" })
   @Patch(":id")
-  async update(@Param("id") id: number, body: UpdateTicketDto) {
+  async update(@Param("id") id: number, @Body() body: UpdateTicketDto) {
     return await this.ticketService.update(id, body);
   }
 
