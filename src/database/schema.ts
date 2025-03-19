@@ -65,10 +65,10 @@ export const userTickets = sqliteTable("user_tickets", {
 
 export const history = sqliteTable("history", {
   id: text().primaryKey().$default(() => crypto.randomUUID()),
-  sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "set null" }),
-  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "set null" }),
+  sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" }),
   checkedInAt: text("checked_in_at").$default(() => new Date().toISOString()).notNull(),
   checkedOutAt: text("checked_out_at"),
-  ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
+  ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
   fee: real(),
 });

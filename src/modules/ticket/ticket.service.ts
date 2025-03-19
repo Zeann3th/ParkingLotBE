@@ -62,7 +62,7 @@ export class TicketService {
       await this.db.update(userTickets).set({
         ...validFrom && { validFrom: new Date(validFrom).toISOString() },
         ...validTo && { validTo: new Date(validTo).toISOString() },
-      }).where(eq(tickets.id, id));
+      }).where(eq(userTickets.ticketId, id));
     }
     return ticket;
   }
