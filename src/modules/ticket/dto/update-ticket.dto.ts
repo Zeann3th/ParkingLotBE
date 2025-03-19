@@ -1,9 +1,10 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { TicketType } from "src/database/schema";
 
 export class UpdateTicketDto {
   @IsString()
   @IsNotEmpty()
-  ticketType: "MONTHLY" | "DAILY";
+  type: TicketType;
 
   @IsNumber()
   @IsNotEmpty()

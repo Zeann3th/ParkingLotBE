@@ -21,14 +21,13 @@ export class TicketService {
     return ticket;
   }
 
-  async create({ ticketType, price, validTo }: CreateTicketDto) {
+  async create({ type, validTo }: CreateTicketDto) {
     const request: any = {
-      ...ticketType && { ticketType },
-      ...price && { price },
+      ...type && { type },
     }
 
     if (!validTo) {
-      request.validTo = ticketType === "DAILY"
+      request.validTo = type === "DAILY"
         ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
         : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
     } else {
@@ -39,9 +38,24 @@ export class TicketService {
     return { message: "Ticket created successfully" };
   }
 
-  async update(id: number, { ticketType, price, validFrom, validTo }: UpdateTicketDto) {
+  async batchCreate(body: CreateTicketDto[]) {
+    const requests = body.map(({ type, validTo }) => ({
+      type,
+      validTo: validTo
+        ? new Date(validTo).toISOString()
+        : type === "DAILY"
+          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
+          : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+    }));
+
+    await this.db.insert(tickets).values(requests);
+
+    return { message: "Tickets created successfully" };
+  }
+
+  async update(id: number, { type, price, validFrom, validTo }: UpdateTicketDto) {
     let request = {
-      ...ticketType && { ticketType },
+      ...type && { type },
       ...price && { price },
       ...validFrom && { validFrom: new Date(validFrom).toISOString() },
       ...validTo && { validTo: new Date(validTo).toISOString() },

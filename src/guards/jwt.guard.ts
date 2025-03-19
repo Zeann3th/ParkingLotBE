@@ -19,7 +19,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     const [user] = await this.db.select().from(users).where(eq(users.id, request.user.sub));
 
-    if (!user.isAuthenticated) {
+    if (!user.refreshToken) {
       throw new HttpException("User is not authenticated, please log in again", 401);
     }
 
