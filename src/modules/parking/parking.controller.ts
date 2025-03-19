@@ -23,7 +23,7 @@ export class ParkingController {
       }
     }
   })
-  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 201, description: "Success" })
   @ApiBearerAuth()
   @Post("check-in")
   async checkIn(@Request() req, @Body() body: CheckInDto) {
@@ -39,7 +39,7 @@ export class ParkingController {
       }
     }
   })
-  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 201, description: "Success" })
   @ApiBearerAuth()
   @Post("check-out")
   async checkOut(@Body() body: CheckOutDto) {

@@ -45,7 +45,7 @@ export class SectionService {
     }
 
     try {
-      await this.db.update(sections).set(request).where(eq(sections.id, id));
+      return await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
     }
     catch (e: any) {
       if (e.code === 'SQLITE_CONSTRAINT') {
@@ -64,7 +64,7 @@ export class SectionService {
     if (user.role !== "ADMIN" && !user.privileges?.includes(id)) {
       throw new HttpException("You are not allowed to view this section", 403);
     }
-    return await this.db.select().from(sections).where(eq(sections.id, id)).leftJoin(slots, eq(sections.id, slots.sectionId));
+    return await this.db.select().from(slots).where(eq(slots.sectionId, id));
   }
 
   async getSlotById(user: UserInterface, sectionId: number, slotId: number) {

@@ -19,7 +19,6 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return all sections" })
   @Get()
   async getAll(@User() user: UserInterface) {
-    console.log(user);
     return await this.sectionService.getAll(user);
   }
 

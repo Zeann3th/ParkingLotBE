@@ -65,4 +65,5 @@ export const parkingHistory = sqliteTable("parking_history", {
   checkedOutAt: text("checked_out_at"),
   ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "set null" }),
   paymentStatus: text("payment_status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
+  fee: real(),
 });

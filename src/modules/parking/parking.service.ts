@@ -55,39 +55,77 @@ export class ParkingService {
     // Find by ticket id
     const [ticket] = await this.db.select().from(tickets)
       .where(eq(tickets.id, ticketId));
+
     // If not found, return error 
     if (!ticket) {
       throw new HttpException("Ticket not found", 404);
     }
+
     if (ticket.status !== "INUSE") {
       throw new HttpException("Ticket is not in use", 400);
     }
+
     let total = 0;
+
     // If found, update the slot, ticket to be available
     await this.db.transaction(async (tx) => {
-      const [[ticket], [history]] = await Promise.all([
-        tx.update(tickets).set({ status: "AVAILABLE" })
-          .where(eq(tickets.id, ticketId)).returning(),
-        tx.update(parkingHistory).set({ checkedOutAt: new Date().toISOString() })
-          .where(eq(parkingHistory.ticketId, ticketId))
-          .orderBy(desc(parkingHistory.checkedInAt))
-          .limit(1).returning()
-      ]);
-      const [_, [{ vehicleType }]] = await Promise.all([
-        tx.update(slots).set({ status: "FREE" })
-          .where(eq(slots.id, history.slotId)),
-        tx.select({ vehicleType: vehicles.type }).from(vehicles)
-          .where(eq(vehicles.id, history.vehicleId))
-      ])
+      const [history] = await tx.select().from(parkingHistory)
+        .where(eq(parkingHistory.ticketId, ticketId))
+        .orderBy(desc(parkingHistory.checkedInAt))
+        .limit(1);
 
-      total = await this.calculatePrice(ticket.type, vehicleType, history.checkedInAt, history.checkedOutAt!);
+      if (!history) {
+        throw new HttpException("No parking history found for this ticket", 404);
+      }
+
+      const now = new Date().toISOString();
+
+      // Update the history record
+      const [updatedHistory] = await tx.update(parkingHistory)
+        .set({ checkedOutAt: now })
+        .where(eq(parkingHistory.id, history.id))
+        .returning();
+
+      // Update the ticket status
+      const [updatedTicket] = await tx.update(tickets)
+        .set({ status: "AVAILABLE" })
+        .where(eq(tickets.id, ticketId))
+        .returning();
+
+      // Update the slot status
+      await tx.update(slots)
+        .set({ status: "FREE" })
+        .where(eq(slots.id, history.slotId));
+
+      // Get vehicle type
+      const [vehicle] = await tx.select({ vehicleType: vehicles.type })
+        .from(vehicles)
+        .where(eq(vehicles.id, history.vehicleId));
+
+      if (!vehicle) {
+        throw new HttpException("Vehicle not found", 404);
+      }
+
+      // Calculate price
+      total = await this.calculatePrice(
+        updatedTicket.type,
+        vehicle.vehicleType,
+        history.checkedInAt,
+        updatedHistory.checkedOutAt!
+      );
+
+      // Update fee in history
+      await tx.update(parkingHistory)
+        .set({ fee: total })
+        .where(eq(parkingHistory.id, updatedHistory.id));
     });
+
     if (total === 0) {
       throw new HttpException("Failed to calculate price", 500);
     }
+
     return { total };
   }
-
   private async findOrCreateVehicle(plate: string, type: "CAR" | "MOTORBIKE") {
     let [vehicle] = await this.db.select().from(vehicles).where(eq(vehicles.plate, plate));
     if (!vehicle) {
@@ -140,51 +178,56 @@ export class ParkingService {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
-    const [basePrice] = await this.db.select().from(ticketPrices)
+    const [{ basePrice }] = await this.db.select({ basePrice: ticketPrices.price }).from(ticketPrices)
       .where(and(
         eq(ticketPrices.type, ticketType),
         eq(ticketPrices.vehicleType, vehicleType)
       ));
-
 
     if (!basePrice) throw new Error('Price not found');
 
     if (ticketType === 'MONTHLY') {
       const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
         (endDate.getMonth() - startDate.getMonth());
-      return basePrice.price * months;
+      return Math.max(1, months) * basePrice;
     }
 
-    const startHour = startDate.getHours();
-    const endHour = endDate.getHours();
+    const hourlyRate = basePrice / 24;
+    const dayRate = hourlyRate;
+    const nightRate = hourlyRate * 1.5;
+
     let totalPrice = 0;
+    const totalMs = endDate.getTime() - startDate.getTime();
+    const totalHours = totalMs / (1000 * 60 * 60);
 
-    const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    let currentTime = new Date(startDate);
 
-    if (startHour < 18) {
-      totalPrice += (18 - startHour) * (basePrice.price / 12);
-      totalPrice += (24 - 18) * (basePrice.price / 12) * 1.5;
-    } else {
-      totalPrice += (24 - startHour) * (basePrice.price / 12) * 1.5;
-    }
-
-    for (let i = 1; i < totalDays; i++) {
-      totalPrice += 12 * (basePrice.price / 12);
-      totalPrice += 12 * (basePrice.price / 12) * 1.5;
-    }
-
-    if (endHour > 6) {
-      totalPrice += 6 * (basePrice.price / 12) * 1.5;
-      if (endHour > 18) {
-        totalPrice += 12 * (basePrice.price / 12);
-        totalPrice += (endHour - 18) * (basePrice.price / 12) * 1.5;
-      } else {
-        totalPrice += (endHour - 6) * (basePrice.price / 12);
+    while (currentTime < endDate) {
+      const currentHour = currentTime.getHours();
+      if (currentHour >= 6 && currentHour < 18) {
+        totalPrice += dayRate;
       }
-    } else {
-      totalPrice += endHour * (basePrice.price / 12) * 1.5;
+      else {
+        totalPrice += nightRate;
+      }
+
+      currentTime.setHours(currentTime.getHours() + 1);
+
+      if (currentTime > endDate) {
+        const partialHour = 1 - (currentTime.getTime() - endDate.getTime()) / (1000 * 60 * 60);
+        if (partialHour > 0) {
+          if (currentHour >= 6 && currentHour < 18) {
+            totalPrice -= dayRate;
+            totalPrice += dayRate * partialHour;
+          } else {
+            totalPrice -= nightRate;
+            totalPrice += nightRate * partialHour;
+          }
+        }
+      }
     }
 
-    return totalPrice;
+    const total = Math.round(totalPrice * 100) / 100;
+    return total < basePrice ? basePrice : total;
   }
 }
