@@ -1,14 +1,14 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 import { TicketType } from "src/database/types";
 
 export class UpdateTicketDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   type: TicketType;
 
-  @IsNumber()
-  @IsNotEmpty()
-  price: number;
+  @IsString()
+  @IsOptional()
+  status: "AVAILABLE" | "INUSE" | "LOST";
 
   @IsString()
   @IsOptional()

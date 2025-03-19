@@ -85,6 +85,8 @@ export class TicketController {
     return await this.ticketService.update(id, body);
   }
 
+  //TODO: Update pricing global?
+
   @ApiOperation({ summary: "Delete a ticket", description: "Delete a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()

@@ -1,46 +1,32 @@
-CREATE TABLE `parking_history` (
+CREATE TABLE `history` (
 	`id` text PRIMARY KEY NOT NULL,
-	`slot_id` integer NOT NULL,
 	`vehicle_id` integer NOT NULL,
 	`checked_in_at` text NOT NULL,
 	`checked_out_at` text,
 	`ticket_id` integer,
-	`payment_status` text NOT NULL,
-	FOREIGN KEY (`slot_id`) REFERENCES `parking_slots`(`id`) ON UPDATE no action ON DELETE set null,
+	`fee` real,
 	FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE TABLE `parking_sections` (
+CREATE TABLE `sections` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
 	`capacity` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `parking_sections_name_unique` ON `parking_sections` (`name`);--> statement-breakpoint
-CREATE TABLE `parking_slots` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`status` text NOT NULL,
-	`section_id` integer NOT NULL,
-	`vehicle_id` integer,
-	FOREIGN KEY (`section_id`) REFERENCES `parking_sections`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE no action ON DELETE no action
-);
---> statement-breakpoint
-CREATE TABLE `ticket_price` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+CREATE UNIQUE INDEX `sections_name_unique` ON `sections` (`name`);--> statement-breakpoint
+CREATE TABLE `ticket_prices` (
 	`type` text NOT NULL,
 	`vehicle_type` text NOT NULL,
 	`price` real NOT NULL,
-	`period` integer NOT NULL
+	PRIMARY KEY(`type`, `vehicle_type`)
 );
 --> statement-breakpoint
 CREATE TABLE `tickets` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`type` text NOT NULL,
-	`status` text NOT NULL,
-	`valid_from` text NOT NULL,
-	`valid_to` text NOT NULL
+	`status` text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `user_privileges` (
@@ -48,7 +34,17 @@ CREATE TABLE `user_privileges` (
 	`section_id` integer NOT NULL,
 	PRIMARY KEY(`user_id`, `section_id`),
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`section_id`) REFERENCES `parking_sections`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`section_id`) REFERENCES `sections`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `user_tickets` (
+	`user_id` integer NOT NULL,
+	`ticket_id` integer NOT NULL,
+	`valid_from` text NOT NULL,
+	`valid_to` text NOT NULL,
+	PRIMARY KEY(`user_id`, `ticket_id`),
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `users` (
@@ -65,7 +61,8 @@ CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statemen
 CREATE TABLE `vehicles` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`plate` text NOT NULL,
-	`type` text NOT NULL
+	`type` text NOT NULL,
+	`reserved_slot` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `vehicles_plate_unique` ON `vehicles` (`plate`);

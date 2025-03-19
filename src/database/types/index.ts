@@ -1,10 +1,8 @@
-export type UserRole = "ADMIN" | "USER";
+export type UserRole = "ADMIN" | "USER" | "SECURITY";
 
 export type VehicleType = "CAR" | "MOTORBIKE";
 
-export type SlotStatus = "FREE" | "OCCUPIED";
-
-export type TicketType = "MONTHLY" | "DAILY";
+export type TicketType = "MONTHLY" | "DAILY" | "RESERVED";
 
 export type TicketStatus = "AVAILABLE" | "INUSE" | "LOST";
 

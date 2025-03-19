@@ -30,11 +30,12 @@ export class RolesGuard implements CanActivate {
     }
 
     if (user.role === 'ADMIN') return true;
+    else if (user.role === 'SECURITY') {
+      const privileges = await this.db.select({ sectionId: userPrivileges.sectionId }).from(userPrivileges)
+        .where(eq(userPrivileges.userId, user.sub));
 
-    const privileges = await this.db.select({ sectionId: userPrivileges.sectionId }).from(userPrivileges)
-      .where(eq(userPrivileges.userId, user.sub));
-
-    user.privileges = privileges.map((p) => p.sectionId);
+      user.privileges = privileges.map((p) => p.sectionId);
+    }
 
     request.user = user;
 

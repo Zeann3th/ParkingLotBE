@@ -5,36 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1742351994021,
-      "tag": "0000_gray_vermin",
+      "when": 1742386739119,
+      "tag": "0000_loving_boomerang",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1742352127870,
-      "tag": "0001_ambitious_khan",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1742355452461,
-      "tag": "0002_stormy_king_bedlam",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1742355767416,
-      "tag": "0003_simple_misty_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1742366057903,
-      "tag": "0004_secret_lizard",
+      "when": 1742391702186,
+      "tag": "0001_smiling_lenny_balinger",
       "breakpoints": true
     }
   ]

@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { tickets } from 'src/database/schema';
+import { tickets, userTickets } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
@@ -53,14 +53,18 @@ export class TicketService {
     return { message: "Tickets created successfully" };
   }
 
-  async update(id: number, { type, price, validFrom, validTo }: UpdateTicketDto) {
-    let request = {
+  async update(id: number, { type, status, validFrom, validTo }: UpdateTicketDto) {
+    const [ticket] = await this.db.update(tickets).set({
       ...type && { type },
-      ...price && { price },
-      ...validFrom && { validFrom: new Date(validFrom).toISOString() },
-      ...validTo && { validTo: new Date(validTo).toISOString() },
+      ...status && { status },
+    }).where(eq(tickets.id, id)).returning();
+    if (validFrom || validTo) {
+      await this.db.update(userTickets).set({
+        ...validFrom && { validFrom: new Date(validFrom).toISOString() },
+        ...validTo && { validTo: new Date(validTo).toISOString() },
+      }).where(eq(userTickets.ticketId, id));
     }
-    return await this.db.update(tickets).set(request).where(eq(tickets.id, id)).returning();
+    return ticket;
   }
 
   async delete(id: number) {
