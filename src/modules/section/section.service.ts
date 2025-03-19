@@ -6,21 +6,26 @@ import { sections, slots } from 'src/database/schema';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { Request } from 'express';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class SectionService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: any) {
+  async getAll(user: UserInterface) {
     if (user.role === "ADMIN") {
       return await this.db.select().from(sections);
     }
 
-    return await this.db.select().from(sections).where(inArray(sections.id, user.allowedSections));
+    if (!user.privileges) {
+      throw new HttpException("You are not allowed to view any sections", 403);
+    }
+
+    return await this.db.select().from(sections).where(inArray(sections.id, user.privileges));
   }
 
-  async getById(user: any, id: number) {
-    if (user.role !== "ADMIN" && !user.allowedSections.includes(id)) {
+  async getById(user: UserInterface, id: number) {
+    if (user.role !== "ADMIN" && !user.privileges?.includes(id)) {
       throw new HttpException("You are not allowed to view this section", 403);
     }
 
@@ -55,15 +60,15 @@ export class SectionService {
     return {}
   }
 
-  async getAllSlots(user: any, id: number) {
-    if (user.role !== "ADMIN" && !user.allowedSections.includes(id)) {
+  async getAllSlots(user: UserInterface, id: number) {
+    if (user.role !== "ADMIN" && !user.privileges?.includes(id)) {
       throw new HttpException("You are not allowed to view this section", 403);
     }
     return await this.db.select().from(sections).where(eq(sections.id, id)).leftJoin(slots, eq(sections.id, slots.sectionId));
   }
 
-  async getSlotById(user: any, sectionId: number, slotId: number) {
-    if (user.role !== "ADMIN" && !user.allowedSections.includes(sectionId)) {
+  async getSlotById(user: UserInterface, sectionId: number, slotId: number) {
+    if (user.role !== "ADMIN" && !user.privileges?.includes(sectionId)) {
       throw new HttpException("You are not allowed to view this section", 403);
     }
     const [slot] = await this.db.select().from(slots).where(and(

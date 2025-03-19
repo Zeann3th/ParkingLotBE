@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsNumber, IsString } from "class-validator";
-import { VehicleType } from "src/database/schema";
+import { VehicleType } from "src/database/types";
 
 export class CheckInDto {
   @IsNumber()

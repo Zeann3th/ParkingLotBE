@@ -1,7 +1,7 @@
 import { createClient } from "@libsql/client";
 import { Module } from "@nestjs/common";
 import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import env from "src/config";
+import env from "src/common";
 import * as schema from "./schema";
 
 export const DRIZZLE = Symbol("Drizzle Connection");
