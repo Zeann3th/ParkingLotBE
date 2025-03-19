@@ -2,7 +2,7 @@
 export interface UserInterface {
   sub: number;
   username: string;
-  role: "ADMIN" | "USER";
+  role: "ADMIN" | "USER" | "SECURITY";
   privileges?: number[];
 }
 

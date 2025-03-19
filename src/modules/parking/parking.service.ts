@@ -15,37 +15,46 @@ export class ParkingService {
     if (user.role !== "ADMIN" && !user.allowedSections.includes(sectionId)) {
       throw new HttpException("You are not allowed to operate on this section", 403);
     }
-    // 1. Find vehicle by plate
+    //TODO: Ticket valid ?
+
+    // Find vehicle by plate
     const vehicle = await this.findOrCreateVehicle(plate, type);
-    // 2. Find slot by vehicle id (reserved)
-    const [slot] = await this.db.select().from(slots)
-      .where(and(
-        eq(slots.vehicleId, vehicle.id),
-        eq(slots.sectionId, sectionId)
-      ));
-    if (slot) {
-      await this.assignVehicleToSlot(vehicle.id, slot.id, ticketId);
-      return;
+    if (vehicle.slotId) {
+      // Find slot by vehicle id (reserved)
+      const [slot] = await this.db.select().from(slots)
+        .where(and(
+          eq(slots.id, vehicle.slotId),
+          eq(slots.status, "FREE"),
+        ));
+      if (slot) {
+        await this.assignVehicleToSlot(vehicle.id, slot.id, ticketId);
+        return;
+      }
     }
-    // 3. If not found, find available slot
-    const [availableSlot] = await this.db.select().from(slots)
+    // If null, find available slot
+    const [{ slotId }] = await this.db.select({ slotId: slots.id }).from(slots)
+      .leftJoin(vehicles, eq(slots.id, vehicles.slotId))
       .where(and(
         eq(slots.status, "FREE"),
         eq(slots.sectionId, sectionId),
-        isNull(slots.vehicleId)
+        isNull(vehicles.slotId)
       ));
-    if (availableSlot) {
-      await this.assignVehicleToSlot(vehicle.id, availableSlot.id, ticketId);
+    if (slotId) {
+      await this.assignVehicleToSlot(vehicle.id, slotId, ticketId);
       return;
     }
     // 4. If not found, check if there's capacity for a new slot in the section
-    const [{ count: slotCount, capacity }] = await this.db
+    const [{ count: current, capacity }] = await this.db
       .select({ capacity: sections.capacity, count: count() })
       .from(sections)
       .where(eq(sections.id, sectionId));
 
-    if (slotCount < capacity) {
-      await this.assignVehicleToNewSlot(vehicle.id, sectionId, ticketId);
+    if (current < capacity) {
+      const [{ slotId }] = await this.db.insert(slots).values({
+        sectionId,
+        status: "OCCUPIED",
+      }).returning({ slotId: slots.id });
+      await this.assignVehicleToSlot(vehicle.id, slotId, ticketId);
       return;
     }
     throw new HttpException("No available parking slots for this section", 400);
@@ -126,6 +135,7 @@ export class ParkingService {
 
     return { total };
   }
+
   private async findOrCreateVehicle(plate: string, type: "CAR" | "MOTORBIKE") {
     let [vehicle] = await this.db.select().from(vehicles).where(eq(vehicles.plate, plate));
     if (!vehicle) {
@@ -146,29 +156,6 @@ export class ParkingService {
           ticketId,
         }),
         tx.update(slots).set({ status: "OCCUPIED" }).where(eq(slots.id, slotId)),
-        tx.update(tickets).set({ status: "INUSE" }).where(eq(tickets.id, ticketId))
-      ])
-    });
-  }
-
-  private async assignVehicleToNewSlot(vehicleId: number, sectionId: number, ticketId: number) {
-    return this.db.transaction(async (tx) => {
-      const [newSlot] = await this.db
-        .insert(slots)
-        .values({
-          sectionId,
-          status: "OCCUPIED",
-          vehicleId
-        })
-        .returning();
-      await Promise.all([
-        tx.insert(parkingHistory).values({
-          vehicleId,
-          slotId: newSlot.id,
-          checkedInAt: new Date().toISOString(),
-          ticketId,
-        }),
-        tx.update(slots).set({ status: "OCCUPIED" }).where(eq(slots.id, newSlot.id)),
         tx.update(tickets).set({ status: "INUSE" }).where(eq(tickets.id, ticketId))
       ])
     });

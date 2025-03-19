@@ -17,6 +17,8 @@ export class SectionController {
   @ApiOperation({ summary: "Get all sections", description: "Get all sections" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all sections" })
+  @ApiResponse({ status: 403, description: "You are not allowed to view any sections" })
+  @Roles("ADMIN", "SECURITY")
   @Get()
   async getAll(@User() user: UserInterface) {
     return await this.sectionService.getAll(user);
@@ -27,6 +29,7 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return section" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
   @Get(":id")
   async getById(@User() user: UserInterface, @Param("id") id: number) {
     return await this.sectionService.getById(user, id);
@@ -87,6 +90,7 @@ export class SectionController {
   @ApiResponse({ status: 200, description: "Return all slots" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
   @Get(":id/slots")
   async getAllSlots(@User() user: UserInterface, @Param("id") id: number) {
     return await this.sectionService.getAllSlots(user, id);
@@ -97,6 +101,7 @@ export class SectionController {
   @ApiParam({ name: "slotId", description: "Slot id" })
   @ApiResponse({ status: 200, description: "Return slot" })
   @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
   @Get(":id/slots/:slotId")
   async getSlotById(@User() user: UserInterface, @Param("id") id: number, @Param("slotId") slotId: number) {
     return await this.sectionService.getSlotById(user, id, slotId);

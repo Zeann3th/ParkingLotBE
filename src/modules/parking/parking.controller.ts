@@ -5,9 +5,11 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CheckOutDto } from './dto/check-out.dto';
+import { Roles } from 'src/decorators/role.decorator';
 
 @Controller('parking')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles("ADMIN", "SECURITY")
 export class ParkingController {
   constructor(private readonly parkingService: ParkingService) { }
 
@@ -24,6 +26,7 @@ export class ParkingController {
     }
   })
   @ApiResponse({ status: 201, description: "Success" })
+  @ApiResponse({ status: 403, description: "You are not allowed to operate on this section" })
   @ApiBearerAuth()
   @Post("check-in")
   async checkIn(@Request() req, @Body() body: CheckInDto) {
@@ -40,6 +43,8 @@ export class ParkingController {
     }
   })
   @ApiResponse({ status: 201, description: "Success" })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  @ApiResponse({ status: 400, description: "No available parking slots for this section" })
   @ApiBearerAuth()
   @Post("check-out")
   async checkOut(@Body() body: CheckOutDto) {

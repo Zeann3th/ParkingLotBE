@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5379de08-a17d-443f-90f5-fa61b8e2d187",
+  "id": "d651b56d-e25f-4f70-91b3-a1ab3953783e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "parking_history": {
-      "name": "parking_history",
+    "history": {
+      "name": "history",
       "columns": {
         "id": {
           "name": "id",
@@ -49,20 +49,20 @@
           "notNull": false,
           "autoincrement": false
         },
-        "payment_status": {
-          "name": "payment_status",
-          "type": "text",
+        "fee": {
+          "name": "fee",
+          "type": "real",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "parking_history_slot_id_parking_slots_id_fk": {
-          "name": "parking_history_slot_id_parking_slots_id_fk",
-          "tableFrom": "parking_history",
-          "tableTo": "parking_slots",
+        "history_slot_id_slots_id_fk": {
+          "name": "history_slot_id_slots_id_fk",
+          "tableFrom": "history",
+          "tableTo": "slots",
           "columnsFrom": [
             "slot_id"
           ],
@@ -72,9 +72,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "parking_history_vehicle_id_vehicles_id_fk": {
-          "name": "parking_history_vehicle_id_vehicles_id_fk",
-          "tableFrom": "parking_history",
+        "history_vehicle_id_vehicles_id_fk": {
+          "name": "history_vehicle_id_vehicles_id_fk",
+          "tableFrom": "history",
           "tableTo": "vehicles",
           "columnsFrom": [
             "vehicle_id"
@@ -85,9 +85,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "parking_history_ticket_id_tickets_id_fk": {
-          "name": "parking_history_ticket_id_tickets_id_fk",
-          "tableFrom": "parking_history",
+        "history_ticket_id_tickets_id_fk": {
+          "name": "history_ticket_id_tickets_id_fk",
+          "tableFrom": "history",
           "tableTo": "tickets",
           "columnsFrom": [
             "ticket_id"
@@ -103,8 +103,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "parking_sections": {
-      "name": "parking_sections",
+    "sections": {
+      "name": "sections",
       "columns": {
         "id": {
           "name": "id",
@@ -129,8 +129,8 @@
         }
       },
       "indexes": {
-        "parking_sections_name_unique": {
-          "name": "parking_sections_name_unique",
+        "sections_name_unique": {
+          "name": "sections_name_unique",
           "columns": [
             "name"
           ],
@@ -142,8 +142,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "parking_slots": {
-      "name": "parking_slots",
+    "slots": {
+      "name": "slots",
       "columns": {
         "id": {
           "name": "id",
@@ -165,21 +165,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "vehicle_id": {
-          "name": "vehicle_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "parking_slots_section_id_parking_sections_id_fk": {
-          "name": "parking_slots_section_id_parking_sections_id_fk",
-          "tableFrom": "parking_slots",
-          "tableTo": "parking_sections",
+        "slots_section_id_sections_id_fk": {
+          "name": "slots_section_id_sections_id_fk",
+          "tableFrom": "slots",
+          "tableTo": "sections",
           "columnsFrom": [
             "section_id"
           ],
@@ -188,35 +181,15 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "parking_slots_vehicle_id_vehicles_id_fk": {
-          "name": "parking_slots_vehicle_id_vehicles_id_fk",
-          "tableFrom": "parking_slots",
-          "tableTo": "vehicles",
-          "columnsFrom": [
-            "vehicle_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "ticket_price": {
-      "name": "ticket_price",
+    "ticket_prices": {
+      "name": "ticket_prices",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
         "type": {
           "name": "type",
           "type": "text",
@@ -237,18 +210,19 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "period": {
-          "name": "period",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "ticket_prices_type_vehicle_type_pk": {
+          "columns": [
+            "type",
+            "vehicle_type"
+          ],
+          "name": "ticket_prices_type_vehicle_type_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -271,20 +245,6 @@
         },
         "status": {
           "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "valid_from": {
-          "name": "valid_from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "valid_to": {
-          "name": "valid_to",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -330,10 +290,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "user_privileges_section_id_parking_sections_id_fk": {
-          "name": "user_privileges_section_id_parking_sections_id_fk",
+        "user_privileges_section_id_sections_id_fk": {
+          "name": "user_privileges_section_id_sections_id_fk",
           "tableFrom": "user_privileges",
-          "tableTo": "parking_sections",
+          "tableTo": "sections",
           "columnsFrom": [
             "section_id"
           ],
@@ -351,6 +311,79 @@
             "section_id"
           ],
           "name": "user_privileges_user_id_section_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "user_tickets": {
+      "name": "user_tickets",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_tickets_user_id_users_id_fk": {
+          "name": "user_tickets_user_id_users_id_fk",
+          "tableFrom": "user_tickets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_tickets_ticket_id_tickets_id_fk": {
+          "name": "user_tickets_ticket_id_tickets_id_fk",
+          "tableFrom": "user_tickets",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_tickets_user_id_ticket_id_pk": {
+          "columns": [
+            "user_id",
+            "ticket_id"
+          ],
+          "name": "user_tickets_user_id_ticket_id_pk"
         }
       },
       "uniqueConstraints": {},
@@ -446,6 +479,13 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -457,7 +497,21 @@
           "isUnique": true
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "vehicles_slot_id_slots_id_fk": {
+          "name": "vehicles_slot_id_slots_id_fk",
+          "tableFrom": "vehicles",
+          "tableTo": "slots",
+          "columnsFrom": [
+            "slot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

@@ -1,1 +1,0 @@
-ALTER TABLE `parking_history` ADD `fee` real;

@@ -1,4 +1,4 @@
-export type UserRole = "ADMIN" | "USER";
+export type UserRole = "ADMIN" | "USER" | "SECURITY";
 
 export type VehicleType = "CAR" | "MOTORBIKE";
 
