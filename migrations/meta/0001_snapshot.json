@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bdda3404-7ace-41d5-bfe5-ca38e9984ab6",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "fc86de2a-3a44-4914-9e94-f00bfd42459b",
+  "prevId": "bdda3404-7ace-41d5-bfe5-ca38e9984ab6",
   "tables": {
     "history": {
       "name": "history",
@@ -11,6 +11,13 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -52,6 +59,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "history_section_id_sections_id_fk": {
+          "name": "history_section_id_sections_id_fk",
+          "tableFrom": "history",
+          "tableTo": "sections",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "history_vehicle_id_vehicles_id_fk": {
           "name": "history_vehicle_id_vehicles_id_fk",
           "tableFrom": "history",
@@ -391,6 +411,93 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "vehicle_reservations": {
+      "name": "vehicle_reservations",
+      "columns": {
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slot": {
+          "name": "slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "vehicle_reservations_ticket_id_tickets_id_fk": {
+          "name": "vehicle_reservations_ticket_id_tickets_id_fk",
+          "tableFrom": "vehicle_reservations",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "vehicle_reservations_vehicle_id_vehicles_id_fk": {
+          "name": "vehicle_reservations_vehicle_id_vehicles_id_fk",
+          "tableFrom": "vehicle_reservations",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "vehicle_reservations_section_id_sections_id_fk": {
+          "name": "vehicle_reservations_section_id_sections_id_fk",
+          "tableFrom": "vehicle_reservations",
+          "tableTo": "sections",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "vehicle_reservations_vehicle_id_section_id_ticket_id_pk": {
+          "columns": [
+            "vehicle_id",
+            "section_id",
+            "ticket_id"
+          ],
+          "name": "vehicle_reservations_vehicle_id_section_id_ticket_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "vehicles": {
       "name": "vehicles",
       "columns": {
@@ -413,13 +520,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "reserved_slot": {
-          "name": "reserved_slot",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         }
       },

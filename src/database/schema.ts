@@ -29,23 +29,25 @@ export const vehicles = sqliteTable("vehicles", {
   id: integer().primaryKey({ autoIncrement: true }),
   plate: text().unique().notNull(),
   type: text({ enum: ["CAR", "MOTORBIKE"] }).notNull(),
-  slotId: integer("slot_id").references(() => slots.id, { onDelete: "set null" }),
 });
 
-export const slots = sqliteTable("slots", {
-  id: integer().primaryKey({ autoIncrement: true }),
-  status: text({ enum: ["FREE", "OCCUPIED"] }).$default(() => "FREE").notNull(),
+export const vehicleReservations = sqliteTable("vehicle_reservations", {
+  ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" }),
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
-});
+  slot: integer().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.vehicleId, table.sectionId, table.ticketId] })
+}));
 
 export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
-  type: text("type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
+  type: text("type", { enum: ["MONTHLY", "DAILY", "RESERVED"] }).notNull(),
   status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST"] }).$default(() => "AVAILABLE").notNull(),
 });
 
 export const ticketPrices = sqliteTable("ticket_prices", {
-  type: text("type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
+  type: text("type", { enum: ["MONTHLY", "DAILY", "RESERVED"] }).notNull(),
   vehicleType: text("vehicle_type", { enum: ["CAR", "MOTORBIKE"] }).notNull(),
   price: real().notNull(),
 }, (table) => ({
@@ -61,9 +63,9 @@ export const userTickets = sqliteTable("user_tickets", {
   pk: primaryKey({ columns: [table.userId, table.ticketId] })
 }));
 
-export const parkingHistory = sqliteTable("history", {
+export const history = sqliteTable("history", {
   id: text().primaryKey().$default(() => crypto.randomUUID()),
-  slotId: integer("slot_id").notNull().references(() => slots.id, { onDelete: "set null" }),
+  sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "set null" }),
   vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "set null" }),
   checkedInAt: text("checked_in_at").$default(() => new Date().toISOString()).notNull(),
   checkedOutAt: text("checked_out_at"),

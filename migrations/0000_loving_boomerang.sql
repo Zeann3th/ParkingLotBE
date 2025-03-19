@@ -1,12 +1,10 @@
 CREATE TABLE `history` (
 	`id` text PRIMARY KEY NOT NULL,
-	`slot_id` integer NOT NULL,
 	`vehicle_id` integer NOT NULL,
 	`checked_in_at` text NOT NULL,
 	`checked_out_at` text,
 	`ticket_id` integer,
 	`fee` real,
-	FOREIGN KEY (`slot_id`) REFERENCES `slots`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`id`) ON UPDATE no action ON DELETE set null
 );
@@ -18,13 +16,6 @@ CREATE TABLE `sections` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sections_name_unique` ON `sections` (`name`);--> statement-breakpoint
-CREATE TABLE `slots` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`status` text NOT NULL,
-	`section_id` integer NOT NULL,
-	FOREIGN KEY (`section_id`) REFERENCES `sections`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
 CREATE TABLE `ticket_prices` (
 	`type` text NOT NULL,
 	`vehicle_type` text NOT NULL,
@@ -71,8 +62,7 @@ CREATE TABLE `vehicles` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`plate` text NOT NULL,
 	`type` text NOT NULL,
-	`slot_id` integer,
-	FOREIGN KEY (`slot_id`) REFERENCES `slots`(`id`) ON UPDATE no action ON DELETE set null
+	`reserved_slot` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `vehicles_plate_unique` ON `vehicles` (`plate`);
