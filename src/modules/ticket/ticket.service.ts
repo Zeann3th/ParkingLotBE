@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { ticketPrices, tickets } from 'src/database/schema';
+import { tickets } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
@@ -21,13 +21,13 @@ export class TicketService {
     return ticket;
   }
 
-  async create({ ticketType, validTo }: CreateTicketDto) {
+  async create({ type, validTo }: CreateTicketDto) {
     const request: any = {
-      ...ticketType && { ticketType },
+      ...type && { type },
     }
 
     if (!validTo) {
-      request.validTo = ticketType === "DAILY"
+      request.validTo = type === "DAILY"
         ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
         : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
     } else {
@@ -39,13 +39,13 @@ export class TicketService {
   }
 
   async batchCreate(body: CreateTicketDto[]) {
-    const requests = body.map(({ ticketType, validTo }) => ({
-      type: ticketType,
+    const requests = body.map(({ type, validTo }) => ({
+      type,
       validTo: validTo
         ? new Date(validTo).toISOString()
-        : ticketType === "DAILY"
-          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
-          : new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString(),
+        : type === "DAILY"
+          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
+          : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
     }));
 
     await this.db.insert(tickets).values(requests);
@@ -53,9 +53,9 @@ export class TicketService {
     return { message: "Tickets created successfully" };
   }
 
-  async update(id: number, { ticketType, price, validFrom, validTo }: UpdateTicketDto) {
+  async update(id: number, { type, price, validFrom, validTo }: UpdateTicketDto) {
     let request = {
-      ...ticketType && { ticketType },
+      ...type && { type },
       ...price && { price },
       ...validFrom && { validFrom: new Date(validFrom).toISOString() },
       ...validTo && { validTo: new Date(validTo).toISOString() },
