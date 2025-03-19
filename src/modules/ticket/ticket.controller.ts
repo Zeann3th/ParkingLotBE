@@ -48,7 +48,26 @@ export class TicketController {
     return await this.ticketService.create(body);
   }
 
-  //TODO: Batch create
+  @ApiOperation({ summary: "Create multiple tickets", description: "Create multiple tickets" })
+  @ApiBody({
+    schema: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          ticketType: { type: "string", example: "DAILY" },
+          price: { type: "number", example: 100 },
+          validTo: { type: "string", example: "2022-12-31" }
+        }
+      }
+    }
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 201, description: "Tickets created successfully" })
+  @Post("batch")
+  async batchCreate(@Body() body: CreateTicketDto[]) {
+    return await this.ticketService.batchCreate(body);
+  }
 
   @ApiOperation({ summary: "Update a ticket", description: "Update a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })

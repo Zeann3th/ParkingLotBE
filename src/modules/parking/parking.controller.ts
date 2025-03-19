@@ -4,7 +4,7 @@ import { CheckInDto } from './dto/check-in.dto';
 import { CustomRequest } from 'src/config/dto/request.dto';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CheckOutDto } from './dto/check-out.dto';
 
 @Controller('parking')
@@ -12,12 +12,35 @@ import { CheckOutDto } from './dto/check-out.dto';
 export class ParkingController {
   constructor(private readonly parkingService: ParkingService) { }
 
+  @ApiOperation({ summary: "Check in", description: "Check in" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        sectionId: { type: "number", example: 1 },
+        ticketId: { type: "number", example: 1 },
+        plate: { type: "string", example: "1234" },
+        type: { type: "string", example: "CAR" }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
   @ApiBearerAuth()
   @Post("check-in")
   async checkIn(@Request() req: CustomRequest, @Body() body: CheckInDto) {
     return await this.parkingService.checkIn(req.user, body);
   }
 
+  @ApiOperation({ summary: "Check out", description: "Check out" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        ticketId: { type: "number", example: 1 }
+      }
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
   @ApiBearerAuth()
   @Post("check-out")
   async checkOut(@Body() body: CheckOutDto) {
