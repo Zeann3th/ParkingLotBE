@@ -51,7 +51,7 @@ export class AuthService {
     });
 
     await this.db.update(users)
-      .set({ refreshToken, isAuthenticated: 1 })
+      .set({ refreshToken })
       .where(eq(users.id, user.id))
 
     return { accessToken, refreshToken };
@@ -60,7 +60,7 @@ export class AuthService {
   async logout(refreshToken: string) {
     if (refreshToken) {
       await this.db.update(users)
-        .set({ refreshToken, isAuthenticated: 0 })
+        .set({ refreshToken })
         .where(eq(users.refreshToken, refreshToken))
     }
     return {};

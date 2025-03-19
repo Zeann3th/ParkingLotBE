@@ -1,0 +1,1 @@
+ALTER TABLE `ticket_price` RENAME TO `ticket_prices`;

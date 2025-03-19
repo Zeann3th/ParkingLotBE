@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { tickets } from 'src/database/schema';
+import { ticketPrices, tickets } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 
@@ -21,10 +21,9 @@ export class TicketService {
     return ticket;
   }
 
-  async create({ ticketType, price, validTo }: CreateTicketDto) {
+  async create({ ticketType, validTo }: CreateTicketDto) {
     const request: any = {
       ...ticketType && { ticketType },
-      ...price && { price },
     }
 
     if (!validTo) {
@@ -37,6 +36,21 @@ export class TicketService {
 
     await this.db.insert(tickets).values(request);
     return { message: "Ticket created successfully" };
+  }
+
+  async batchCreate(body: CreateTicketDto[]) {
+    const requests = body.map(({ ticketType, validTo }) => ({
+      type: ticketType,
+      validTo: validTo
+        ? new Date(validTo).toISOString()
+        : ticketType === "DAILY"
+          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+          : new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString(),
+    }));
+
+    await this.db.insert(tickets).values(requests);
+
+    return { message: "Tickets created successfully" };
   }
 
   async update(id: number, { ticketType, price, validFrom, validTo }: UpdateTicketDto) {

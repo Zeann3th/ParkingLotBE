@@ -48,6 +48,8 @@ export class TicketController {
     return await this.ticketService.create(body);
   }
 
+  //TODO: Batch create
+
   @ApiOperation({ summary: "Update a ticket", description: "Update a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({

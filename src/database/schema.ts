@@ -1,4 +1,5 @@
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { unique } from "drizzle-orm/gel-core";
+import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -6,10 +7,11 @@ export const users = sqliteTable("users", {
   password: text().notNull(),
   role: text({ enum: ["ADMIN", "USER"] }).$default(() => "USER").notNull(),
   refreshToken: text("refresh_token"),
-  isAuthenticated: integer("is_authenticated").$default(() => 0).notNull(),
   createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
+
+export type UserRole = "ADMIN" | "USER";
 
 export const sections = sqliteTable("parking_sections", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -32,21 +34,36 @@ export const vehicles = sqliteTable("vehicles", {
   type: text({ enum: ["CAR", "MOTORBIKE"] }).notNull(),
 });
 
+export type VehicleType = "CAR" | "MOTORBIKE";
+
 export const slots = sqliteTable("parking_slots", {
   id: integer().primaryKey({ autoIncrement: true }),
   status: text({ enum: ["FREE", "OCCUPIED"] }).$default(() => "FREE").notNull(),
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
-  vehicleId: integer("vehicle_id").references(() => vehicles.id, { onDelete: "set null" }),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id)
 });
+
+export type SlotStatus = "FREE" | "OCCUPIED";
 
 export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
-  ticketType: text("ticket_type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
+  type: text("type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
   status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST"] }).$default(() => "AVAILABLE").notNull(),
   validFrom: text("valid_from").$default(() => new Date().toISOString()).notNull(),
   validTo: text("valid_to").notNull(),
-  price: integer().notNull(),
 });
+
+export type TicketType = "MONTHLY" | "DAILY";
+
+export type TicketStatus = "AVAILABLE" | "INUSE" | "LOST";
+
+export const ticketPrices = sqliteTable("ticket_prices", {
+  type: text("type", { enum: ["MONTHLY", "DAILY"] }).notNull(),
+  vehicleType: text("vehicle_type", { enum: ["CAR", "MOTORBIKE"] }).notNull(),
+  price: real().notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.type, table.vehicleType] })
+}));
 
 export const parkingHistory = sqliteTable("parking_history", {
   id: text().primaryKey().$default(() => crypto.randomUUID()),

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "928a6f2a-0b45-4845-9bb6-498fbe35c82d",
-  "prevId": "c486b5b9-f548-4eea-918b-960a2311a396",
+  "id": "6b0db714-0357-4523-a349-2a8e34f923e0",
+  "prevId": "5379de08-a17d-443f-90f5-fa61b8e2d187",
   "tables": {
     "parking_history": {
       "name": "parking_history",
@@ -21,16 +21,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "vehicle_number": {
-          "name": "vehicle_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "vehicle_type": {
-          "name": "vehicle_type",
-          "type": "text",
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -76,7 +69,20 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "parking_history_vehicle_id_vehicles_id_fk": {
+          "name": "parking_history_vehicle_id_vehicles_id_fk",
+          "tableFrom": "parking_history",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "parking_history_ticket_id_tickets_id_fk": {
@@ -89,7 +95,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -146,13 +152,6 @@
           "notNull": true,
           "autoincrement": true
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -166,17 +165,16 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
-      "indexes": {
-        "parking_slots_name_unique": {
-          "name": "parking_slots_name_unique",
-          "columns": [
-            "name"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "parking_slots_section_id_parking_sections_id_fk": {
           "name": "parking_slots_section_id_parking_sections_id_fk",
@@ -190,8 +188,66 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "parking_slots_vehicle_id_vehicles_id_fk": {
+          "name": "parking_slots_vehicle_id_vehicles_id_fk",
+          "tableFrom": "parking_slots",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "ticket_prices": {
+      "name": "ticket_prices",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_type": {
+          "name": "vehicle_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "price": {
+          "name": "price",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "period": {
+          "name": "period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -206,15 +262,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "vehicle_number": {
-          "name": "vehicle_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "ticket_type": {
-          "name": "ticket_type",
+        "type": {
+          "name": "type",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -227,9 +276,16 @@
           "notNull": true,
           "autoincrement": false
         },
-        "price": {
-          "name": "price",
-          "type": "integer",
+        "valid_from": {
+          "name": "valid_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -338,13 +394,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "is_authenticated": {
-          "name": "is_authenticated",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -374,49 +423,42 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "whitelisted_vehicles": {
-      "name": "whitelisted_vehicles",
+    "vehicles": {
+      "name": "vehicles",
       "columns": {
-        "vehicle_number": {
-          "name": "vehicle_number",
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "plate": {
+          "name": "plate",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "slot_id": {
-          "name": "slot_id",
-          "type": "integer",
+        "type": {
+          "name": "type",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         }
       },
-      "indexes": {},
-      "foreignKeys": {
-        "whitelisted_vehicles_slot_id_parking_slots_id_fk": {
-          "name": "whitelisted_vehicles_slot_id_parking_slots_id_fk",
-          "tableFrom": "whitelisted_vehicles",
-          "tableTo": "parking_slots",
-          "columnsFrom": [
-            "slot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "whitelisted_vehicles_vehicle_number_slot_id_pk": {
+      "indexes": {
+        "vehicles_plate_unique": {
+          "name": "vehicles_plate_unique",
           "columns": [
-            "vehicle_number",
-            "slot_id"
+            "plate"
           ],
-          "name": "whitelisted_vehicles_vehicle_number_slot_id_pk"
+          "isUnique": true
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     }
@@ -425,7 +467,9 @@
   "enums": {},
   "_meta": {
     "schemas": {},
-    "tables": {},
+    "tables": {
+      "\"ticket_price\"": "\"ticket_prices\""
+    },
     "columns": {}
   },
   "internal": {
