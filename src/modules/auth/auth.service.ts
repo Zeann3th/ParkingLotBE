@@ -94,7 +94,11 @@ export class AuthService {
     }
   }
 
-  async update(id: number, { password, role, sectionIds, name }: UpdateUserDto) {
+  async update(id: number, { password, role, name }: UpdateUserDto) {
+    const [existingUser] = await this.db.select().from(users).where(eq(users.id, id));
+    if (!existingUser) {
+      throw new HttpException("User not found", 404);
+    }
     const updateData = {
       ...(name && { name }),
       ...(password && { password: await bcrypt.hash(password, 10) }),

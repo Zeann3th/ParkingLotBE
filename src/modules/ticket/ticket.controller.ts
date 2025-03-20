@@ -68,7 +68,6 @@ export class TicketController {
   }
 
   @ApiOperation({ summary: "Update ticket pricing", description: "Update ticket pricing" })
-  @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
     schema: {
       type: "object",

@@ -11,11 +11,6 @@ export class UpdateUserDto {
   role?: UserRole;
 
   @IsOptional()
-  @IsArray()
-  @IsNumber({}, { each: true })
-  sectionIds?: number[];
-
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
   name?: string;

@@ -14,5 +14,12 @@ export class RegisterUserDto {
   name: string;
 }
 
-export class LoginUserDto extends RegisterUserDto {
+export class LoginUserDto {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

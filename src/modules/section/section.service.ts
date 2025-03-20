@@ -48,11 +48,8 @@ export class SectionService {
       const [section] = await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
       if (privilegedTo && privilegedTo.length > 0) {
         await this.db.delete(userPrivileges).where(eq(userPrivileges.sectionId, id));
-        await Promise.all(
-          privilegedTo.map((userId: number) =>
-            this.db.insert(userPrivileges).values({ userId, sectionId: id })
-          )
-        );
+        const values = privilegedTo.map(userId => ({ userId, sectionId: id }));
+        await this.db.insert(userPrivileges).values(values);
       }
       return section;
     }

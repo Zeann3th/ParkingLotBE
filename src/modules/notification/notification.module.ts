@@ -4,6 +4,7 @@ import { DrizzleModule } from 'src/database/drizzle.module';
 
 @Module({
   providers: [NotificationService],
-  imports: [DrizzleModule]
+  imports: [DrizzleModule],
+  exports: [NotificationService],
 })
 export class NotificationModule { }

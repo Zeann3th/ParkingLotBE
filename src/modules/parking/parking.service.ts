@@ -18,23 +18,30 @@ export class ParkingService {
     }
 
     return await this.db.transaction(async (tx) => {
-      const ticketResults = await tx
-        .select({ ticket: tickets, validFrom: userTickets.validFrom, validTo: userTickets.validTo })
-        .from(tickets)
-        .where(eq(tickets.id, ticketId))
-        .leftJoin(userTickets, eq(tickets.id, userTickets.ticketId));
+      const [ticket] = await tx.select().from(tickets)
+        .where(eq(tickets.id, ticketId));
 
-      if (!ticketResults.length) {
+      if (!ticket) {
         throw new HttpException("Ticket not found", 404);
       }
-
-      const [{ ticket, validFrom, validTo }] = ticketResults;
 
       if (ticket.status !== "AVAILABLE") {
         throw new HttpException("Ticket is not available", 400);
       }
 
       if (ticket.type === "RESERVED" || ticket.type === "MONTHLY") {
+        const [{ dplate, validFrom, validTo }] = await tx
+          .select({
+            dplate: vehicles.plate,
+            validFrom: userTickets.validFrom,
+            validTo: userTickets.validTo
+          }).from(userTickets)
+          .where(eq(userTickets.ticketId, ticketId))
+          .leftJoin(vehicleReservations, eq(userTickets.ticketId, vehicleReservations.ticketId))
+          .leftJoin(vehicles, eq(vehicleReservations.vehicleId, vehicles.id));
+        if (dplate !== plate) {
+          throw new HttpException("Plate does not match", 400);
+        }
         const now = new Date();
         if (!validFrom || !validTo || new Date(validFrom) > now || new Date(validTo) < now) {
           throw new HttpException("Invalid ticket", 400);

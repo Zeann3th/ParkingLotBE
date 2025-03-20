@@ -3,7 +3,7 @@ import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
   username: text().unique().notNull(),
-  name: text().notNull(),
+  name: text().notNull().$default(() => "User" + crypto.randomUUID().substring(0, 5)),
   password: text().notNull(),
   role: text({ enum: ["ADMIN", "USER", "SECURITY"] }).$default(() => "USER").notNull(),
   refreshToken: text("refresh_token"),

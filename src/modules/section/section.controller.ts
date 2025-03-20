@@ -85,6 +85,12 @@ export class SectionController {
     return await this.sectionService.delete(id);
   }
 
+  @ApiOperation({ summary: "Report revenue and coverage of a section", description: "Report revenue and coverage of a section" })
+  @ApiParam({ name: "id", description: "Section id" })
+  @ApiResponse({ status: 200, description: "Report generated successfully" })
+  @ApiResponse({ status: 403, description: "You are not allowed to view this section report" })
+  @ApiBearerAuth()
+  @Roles("ADMIN, SECURITY")
   @Post(":id/report")
   async report(@Param("id") id: number) {
     //TODO: Implement this to report revenue and coverage of a section
