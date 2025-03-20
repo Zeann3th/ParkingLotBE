@@ -16,10 +16,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) { }
 
-  async register({ username, password }: RegisterUserDto) {
+  async register({ username, password, name }: RegisterUserDto) {
     password = await bcrypt.hash(password, 10);
     try {
-      await this.db.insert(users).values({ username, password });
+      await this.db.insert(users).values({ username, password, name });
       return { message: "User registered successfully" };
     } catch (e: any) {
       if (e.code === 'SQLITE_CONSTRAINT') {
@@ -94,34 +94,16 @@ export class AuthService {
     }
   }
 
-  async update(id: number, { password, role, sectionIds }: UpdateUserDto) {
+  async update(id: number, { password, role, sectionIds, name }: UpdateUserDto) {
     const updateData = {
+      ...(name && { name }),
       ...(password && { password: await bcrypt.hash(password, 10) }),
       ...(role && { role }),
       updatedAt: new Date().toISOString()
     };
 
-    await this.db.update(users)
+    return await this.db.update(users)
       .set(updateData)
-      .where(eq(users.id, id));
-
-    if (sectionIds !== undefined) {
-      await this.db.delete(userPrivileges)
-        .where(eq(userPrivileges.userId, id));
-
-      if (sectionIds.length > 0) {
-        await this.db.insert(userPrivileges)
-          .values(
-            sectionIds.map(sectionId => ({
-              userId: id,
-              sectionId
-            }))
-          );
-      }
-    }
-
-    return await this.db.query.users.findFirst({
-      where: eq(users.id, id)
-    });
+      .where(eq(users.id, id)).returning();
   }
 }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, ValidateIf } from "class-validator";
 import { TicketType } from "src/database/types";
 
 export class CreateTicketDto {
@@ -6,7 +6,8 @@ export class CreateTicketDto {
   @IsNotEmpty()
   type: TicketType;
 
+  @ValidateIf((o) => o.type !== "DAILY")
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   validTo: string;
 }

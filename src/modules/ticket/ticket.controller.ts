@@ -4,7 +4,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 
 @Controller('tickets')
@@ -62,9 +62,29 @@ export class TicketController {
   })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
-  @Post("batch")
-  async batchCreate(@Body() body: CreateTicketDto[]) {
-    return await this.ticketService.batchCreate(body);
+  @Post("daily/batch")
+  async batchCreate(@Body() body: { amount: number }) {
+    return await this.ticketService.batchCreateDailies(body);
+  }
+
+  @ApiOperation({ summary: "Update ticket pricing", description: "Update ticket pricing" })
+  @ApiParam({ name: "id", description: "Ticket id" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        type: { type: "string", example: "DAILY" },
+        price: { type: "number", example: 100 },
+        vehicleType: { type: "string", example: "CAR" }
+      }
+    }
+  })
+
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: "Ticket pricing updated successfully" })
+  @Patch("pricing")
+  async updatePricing(@Body() body: UpdateTicketPricingDto) {
+    return await this.ticketService.updatePricing(body);
   }
 
   @ApiOperation({ summary: "Update a ticket", description: "Update a ticket" })
@@ -84,8 +104,6 @@ export class TicketController {
   async update(@Param("id") id: number, @Body() body: UpdateTicketDto) {
     return await this.ticketService.update(id, body);
   }
-
-  //TODO: Update pricing global?
 
   @ApiOperation({ summary: "Delete a ticket", description: "Delete a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })

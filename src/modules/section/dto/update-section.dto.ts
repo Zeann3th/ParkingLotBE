@@ -8,4 +8,8 @@ export class UpdateSectionDto {
   @IsNumber()
   @IsOptional()
   capacity: number;
+
+  @IsNumber({}, { each: true })
+  @IsOptional()
+  privilegedTo: number[];
 }

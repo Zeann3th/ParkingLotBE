@@ -84,4 +84,10 @@ export class SectionController {
   async delete(@Param("id") id: number) {
     return await this.sectionService.delete(id);
   }
+
+  @Post(":id/report")
+  async report(@Param("id") id: number) {
+    //TODO: Implement this to report revenue and coverage of a section
+    //return await this.sectionService.report(id);
+  }
 }

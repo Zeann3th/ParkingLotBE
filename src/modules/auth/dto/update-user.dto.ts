@@ -14,4 +14,9 @@ export class UpdateUserDto {
   @IsArray()
   @IsNumber({}, { each: true })
   sectionIds?: number[];
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  name?: string;
 }

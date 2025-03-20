@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { sections } from 'src/database/schema';
+import { sections, userPrivileges } from 'src/database/schema';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { Request } from 'express';
@@ -38,14 +38,23 @@ export class SectionService {
     return { message: "Section created successfully" };
   }
 
-  async update(id: number, { name, capacity }: UpdateSectionDto) {
+  async update(id: number, { name, capacity, privilegedTo }: UpdateSectionDto) {
     let request = {
       ...name && { name },
       ...capacity && { capacity },
     }
 
     try {
-      return await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
+      const [section] = await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
+      if (privilegedTo && privilegedTo.length > 0) {
+        await this.db.delete(userPrivileges).where(eq(userPrivileges.sectionId, id));
+        await Promise.all(
+          privilegedTo.map((userId: number) =>
+            this.db.insert(userPrivileges).values({ userId, sectionId: id })
+          )
+        );
+      }
+      return section;
     }
     catch (e: any) {
       if (e.code === 'SQLITE_CONSTRAINT') {

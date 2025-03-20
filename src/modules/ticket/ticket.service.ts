@@ -2,9 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { tickets, userTickets } from 'src/database/schema';
-import { eq } from 'drizzle-orm';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { ticketPrices, tickets, userTickets } from 'src/database/schema';
+import { and, eq } from 'drizzle-orm';
+import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 
 @Injectable()
 export class TicketService {
@@ -26,30 +26,25 @@ export class TicketService {
       ...type && { type },
     }
 
-    if (!validTo) {
-      request.validTo = type === "DAILY"
-        ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
-        : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
-    } else {
-      request.validTo = new Date(validTo).toISOString();
+    if (type !== "DAILY") {
+      if (!validTo) {
+        request.validTo = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+      } else {
+        request.validTo = new Date(validTo).toISOString();
+      }
     }
 
     await this.db.insert(tickets).values(request);
     return { message: "Ticket created successfully" };
   }
 
-  async batchCreate(body: CreateTicketDto[]) {
-    const requests = body.map(({ type, validTo }) => ({
-      type,
-      validTo: validTo
-        ? new Date(validTo).toISOString()
-        : type === "DAILY"
-          ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
-          : new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+  async batchCreateDailies({ amount }: { amount: number }) {
+    const ticketsToCreate = Array.from({ length: amount }, () => ({
+      type: 'DAILY' as const,
+      status: 'AVAILABLE' as const,
     }));
 
-    await this.db.insert(tickets).values(requests);
-
+    await this.db.insert(tickets).values(ticketsToCreate);
     return { message: "Tickets created successfully" };
   }
 
@@ -58,13 +53,24 @@ export class TicketService {
       ...type && { type },
       ...status && { status },
     }).where(eq(tickets.id, id)).returning();
+
     if (validFrom || validTo) {
       await this.db.update(userTickets).set({
         ...validFrom && { validFrom: new Date(validFrom).toISOString() },
         ...validTo && { validTo: new Date(validTo).toISOString() },
       }).where(eq(userTickets.ticketId, id));
     }
+
     return ticket;
+  }
+
+  async updatePricing({ type, price, vehicleType }: UpdateTicketPricingDto) {
+    const [res] = await this.db.update(ticketPrices).set({ price: Number(price) })
+      .where(and(
+        eq(ticketPrices.type, type),
+        eq(ticketPrices.vehicleType, vehicleType)
+      )).returning();
+    return res;
   }
 
   async delete(id: number) {
