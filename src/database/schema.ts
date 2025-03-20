@@ -3,6 +3,7 @@ import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
   username: text().unique().notNull(),
+  name: text().notNull().$default(() => "User" + crypto.randomUUID().substring(0, 5)),
   password: text().notNull(),
   role: text({ enum: ["ADMIN", "USER", "SECURITY"] }).$default(() => "USER").notNull(),
   refreshToken: text("refresh_token"),
@@ -37,7 +38,7 @@ export const vehicleReservations = sqliteTable("vehicle_reservations", {
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
   slot: integer().notNull(),
 }, (table) => ({
-  pk: primaryKey({ columns: [table.vehicleId, table.sectionId, table.ticketId] })
+  pk: primaryKey({ columns: [table.slot, table.sectionId, table.ticketId, table.vehicleId] })
 }));
 
 export const tickets = sqliteTable("tickets", {

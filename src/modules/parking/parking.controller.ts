@@ -52,10 +52,4 @@ export class ParkingController {
   async checkOut(@User() user: UserInterface, @Body() body: CheckOutDto) {
     return await this.parkingService.checkOut(user, body);
   }
-
-  @ApiBearerAuth()
-  @Get("history")
-  async getHistory() {
-
-  }
 }

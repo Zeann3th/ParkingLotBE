@@ -17,28 +17,50 @@ export class ParkingService {
       throw new HttpException("You are not allowed to operate on this section", 403);
     }
 
-    const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, ticketId));
-    if (!ticket) {
-      throw new HttpException("Ticket not found", 404);
-    }
+    return await this.db.transaction(async (tx) => {
+      const [ticket] = await tx.select().from(tickets)
+        .where(eq(tickets.id, ticketId));
 
-    if (ticket.status !== "AVAILABLE") {
-      throw new HttpException("Ticket is not available", 400);
-    }
-
-    const vehicle = await this.findOrCreateVehicle(plate, type);
-
-    if (ticket.type !== "RESERVED") {
-      const { available } = await this.getNumberOfAvailableSlots(sectionId);
-
-      if (available <= 0) {
-        throw new HttpException("Section is full", 400);
+      if (!ticket) {
+        throw new HttpException("Ticket not found", 404);
       }
-    }
 
-    await this.db.transaction(async (tx) => {
+      if (ticket.status !== "AVAILABLE") {
+        throw new HttpException("Ticket is not available", 400);
+      }
+
+      if (ticket.type === "RESERVED" || ticket.type === "MONTHLY") {
+        const [{ dplate, validFrom, validTo }] = await tx
+          .select({
+            dplate: vehicles.plate,
+            validFrom: userTickets.validFrom,
+            validTo: userTickets.validTo
+          }).from(userTickets)
+          .where(eq(userTickets.ticketId, ticketId))
+          .leftJoin(vehicleReservations, eq(userTickets.ticketId, vehicleReservations.ticketId))
+          .leftJoin(vehicles, eq(vehicleReservations.vehicleId, vehicles.id));
+        if (dplate !== plate) {
+          throw new HttpException("Plate does not match", 400);
+        }
+        const now = new Date();
+        if (!validFrom || !validTo || new Date(validFrom) > now || new Date(validTo) < now) {
+          throw new HttpException("Invalid ticket", 400);
+        }
+      }
+
+      if (ticket.type !== "RESERVED") {
+        const { available } = await this.getNumberOfAvailableSlots(sectionId);
+        if (available <= 0) {
+          throw new HttpException("Section is full", 400);
+        }
+      }
+
+      const vehicle = await this.findOrCreateVehicle(plate, type);
+
       await tx.update(tickets).set({ status: "INUSE" }).where(eq(tickets.id, ticketId));
-      await tx.insert(history).values({ vehicleId: vehicle.id, sectionId, ticketId });
+      const [res] = await tx.insert(history).values({ vehicleId: vehicle.id, sectionId, ticketId }).returning();
+
+      return { history: res };
     });
   }
 
@@ -73,7 +95,6 @@ export class ParkingService {
       throw new HttpException("Plate does not match", 400);
     }
 
-    // Calculate price
     const startDate = new Date(session.history.checkedInAt);
     const endDate = new Date();
     let fee = 0;

@@ -5,6 +5,7 @@ import { HealthcheckModule } from './healthcheck/healthcheck.module';
 import { SectionModule } from './section/section.module';
 import { ParkingModule } from './parking/parking.module';
 import { TicketModule } from './ticket/ticket.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TicketModule } from './ticket/ticket.module';
     SectionModule,
     ParkingModule,
     TicketModule,
+    NotificationModule,
   ]
 })
 export class AppModule {
