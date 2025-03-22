@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
@@ -36,6 +36,15 @@ export class NotificationService {
   }
 
   async update(user: UserInterface, id: number) {
+    const [notification] = await this.db.select().from(notifications)
+      .where(and(
+        eq(notifications.id, id),
+        eq(notifications.to, user.sub)
+      ));
+    if (!notification) {
+      throw new HttpException("Notification not found", 404);
+    }
+
     const readAt = new Date().toISOString();
     await this.db.update(notifications).set({ readAt }).where(
       and(
@@ -43,9 +52,20 @@ export class NotificationService {
         eq(notifications.to, user.sub)
       )
     );
+    return { message: "Notification marked as read" };
   }
 
   async delete(user: UserInterface, id: number) {
+    const [notification] = await this.db.select().from(notifications)
+      .where(and(
+        eq(notifications.id, id),
+        eq(notifications.to, user.sub)
+      ));
+
+    if (!notification) {
+      throw new HttpException("Notification not found", 404);
+    }
+
     await this.db.delete(notifications).where(
       and(
         eq(notifications.id, id),

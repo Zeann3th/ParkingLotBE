@@ -30,6 +30,23 @@ export class TicketController {
     return await this.ticketService.getById(id);
   }
 
+  @ApiOperation({ summary: "Create a ticket", description: "Create a ticket" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        type: { type: "string", example: "DAILY" },
+        userId: { type: "number", example: 1 },
+        months: { type: "number", example: 1 },
+        plate: { type: "string", example: "B1234CD" },
+        vehicleType: { type: "string", example: "CAR" },
+        sectionId: { type: "number", example: 1 },
+        slot: { type: "number", example: 1 }
+      },
+      required: ["type"]
+    }
+  })
+  @Post()
   async create(@Body() body: CreateTicketDto) {
     return await this.ticketService.create(body);
   }
