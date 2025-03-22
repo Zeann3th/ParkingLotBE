@@ -16,7 +16,7 @@ import { NotificationModule } from './notification/notification.module';
     ParkingModule,
     TicketModule,
     NotificationModule,
-  ]
+  ],
 })
 export class AppModule {
 }

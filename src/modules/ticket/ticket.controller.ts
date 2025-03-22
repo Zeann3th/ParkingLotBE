@@ -3,9 +3,9 @@ import { TicketService } from './ticket.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
-import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,41 +30,52 @@ export class TicketController {
     return await this.ticketService.getById(id);
   }
 
-  @ApiOperation({ summary: "Create a new ticket", description: "Create a new ticket" })
+  @ApiOperation({ summary: "Create a ticket", description: "Create a ticket" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
         type: { type: "string", example: "DAILY" },
-        validTo: { type: "string", example: "2022-12-31" }
-      }
+        userId: { type: "number", example: 1 },
+        months: { type: "number", example: 1 },
+        plate: { type: "string", example: "B1234CD" },
+        vehicleType: { type: "string", example: "CAR" },
+        sectionId: { type: "number", example: 1 },
+        slot: { type: "number", example: 1 }
+      },
+      required: ["type"]
     }
   })
-  @ApiBearerAuth()
-  @ApiResponse({ status: 201, description: "Ticket created successfully" })
   @Post()
   async create(@Body() body: CreateTicketDto) {
     return await this.ticketService.create(body);
   }
 
-  @ApiOperation({ summary: "Create multiple tickets", description: "Create multiple tickets" })
+  @ApiOperation({ summary: "Create batch of daily tickets", description: "Create batch of daily tickets" })
   @ApiBody({
     schema: {
       type: "array",
       items: {
         type: "object",
         properties: {
-          type: { type: "string", example: "DAILY" },
-          validTo: { type: "string", example: "2022-12-31" }
+          amount: { type: "number", example: 10 }
         }
       }
     }
   })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
-  @Post("daily/batch")
-  async batchCreate(@Body() body: { amount: number }) {
-    return await this.ticketService.batchCreateDailies(body);
+  @Post("daily")
+  async createDailyTickets(@Body() body: CreateDailyTicketDto) {
+    return await this.ticketService.createDailyTickets(body);
+  }
+
+  @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: "Get ticket pricing" })
+  @Get("pricing")
+  async getPricing() {
+    return await this.ticketService.getPricing();
   }
 
   @ApiOperation({ summary: "Update ticket pricing", description: "Update ticket pricing" })
@@ -73,12 +84,11 @@ export class TicketController {
       type: "object",
       properties: {
         type: { type: "string", example: "DAILY" },
-        price: { type: "number", example: 100 },
+        price: { type: "number", example: 25000 },
         vehicleType: { type: "string", example: "CAR" }
       }
     }
   })
-
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Ticket pricing updated successfully" })
   @Patch("pricing")
@@ -93,7 +103,7 @@ export class TicketController {
       type: "object",
       properties: {
         type: { type: "string", example: "DAILY" },
-        validTo: { type: "string", example: "2022-12-31" }
+        status: { type: "string", example: "AVAILABLE" }
       }
     }
   })

@@ -102,12 +102,15 @@ export class AuthService {
     const updateData = {
       ...(name && { name }),
       ...(password && { password: await bcrypt.hash(password, 10) }),
-      ...(role && { role }),
+      ...(role && { role: role }),
       updatedAt: new Date().toISOString()
     };
 
-    return await this.db.update(users)
+    const [res] = await this.db.update(users)
       .set(updateData)
       .where(eq(users.id, id)).returning();
+
+    const { password: pwd, refreshToken, ...safeUser } = res;
+    return safeUser;
   }
 }

@@ -1,10 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CreateTicketDto } from './dto/create-ticket.dto';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { ticketPrices, tickets, userTickets } from 'src/database/schema';
+import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
+import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 
 @Injectable()
 export class TicketService {
@@ -21,47 +21,116 @@ export class TicketService {
     return ticket;
   }
 
-  async create({ type, validTo }: CreateTicketDto) {
-    const request: any = {
-      ...type && { type },
-    }
+  async create(body: CreateTicketDto) {
+    return await this.db.transaction(async (tx) => {
+      const [{ ticketId }] = await tx.insert(tickets)
+        .values({ type: body.type })
+        .returning({ ticketId: tickets.id });
 
-    if (type !== "DAILY") {
-      if (!validTo) {
-        request.validTo = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
-      } else {
-        request.validTo = new Date(validTo).toISOString();
+      if (body.type === "DAILY") {
+        return { message: "Daily ticket created successfully", ticketId };
       }
-    }
 
-    await this.db.insert(tickets).values(request);
-    return { message: "Ticket created successfully" };
+      const [user] = await tx.select()
+        .from(users)
+        .where(eq(users.id, body.userId));
+      if (!user) {
+        throw new HttpException("User not found", 404);
+      }
+
+      const validTo = new Date();
+      validTo.setMonth(validTo.getMonth() + (body.months ?? 1));
+
+      const [userTicket] = await tx.insert(userTickets)
+        .values({
+          userId: body.userId,
+          ticketId,
+          validTo: validTo.toISOString(),
+        })
+        .returning();
+
+      if (body.type === "MONTHLY") {
+        return { message: "Monthly ticket created successfully", ticketId };
+      }
+
+      if (body.type === "RESERVED") {
+        const [existingSlot] = await tx.select()
+          .from(vehicleReservations)
+          .where(and(
+            eq(vehicleReservations.sectionId, body.sectionId),
+            eq(vehicleReservations.slot, body.slot)
+          ));
+        if (existingSlot) {
+          throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
+        }
+
+        const [vehicle] = await tx.insert(vehicles)
+          .values({ plate: body.plate, type: body.vehicleType })
+          .onConflictDoNothing({ target: vehicles.plate })
+          .returning();
+
+        const vehicleId = vehicle?.id ||
+          (await tx.select({ id: vehicles.id })
+            .from(vehicles)
+            .where(eq(vehicles.plate, body.plate))
+            .then(rows => rows[0]?.id));
+        if (!vehicleId) {
+          throw new HttpException("Failed to create or find vehicle", 500);
+        }
+
+        await tx.insert(vehicleReservations)
+          .values({
+            ticketId,
+            vehicleId,
+            sectionId: body.sectionId,
+            slot: body.slot,
+          });
+        return { message: "Reserved ticket created successfully", ticketId };
+      }
+    });
   }
 
-  async batchCreateDailies({ amount }: { amount: number }) {
+  async createDailyTickets({ amount }: CreateDailyTicketDto) {
     const ticketsToCreate = Array.from({ length: amount }, () => ({
       type: 'DAILY' as const,
-      status: 'AVAILABLE' as const,
     }));
 
     await this.db.insert(tickets).values(ticketsToCreate);
     return { message: "Tickets created successfully" };
   }
 
-  async update(id: number, { type, status, validFrom, validTo }: UpdateTicketDto) {
-    const [ticket] = await this.db.update(tickets).set({
-      ...type && { type },
-      ...status && { status },
-    }).where(eq(tickets.id, id)).returning();
-
-    if (validFrom || validTo) {
-      await this.db.update(userTickets).set({
-        ...validFrom && { validFrom: new Date(validFrom).toISOString() },
-        ...validTo && { validTo: new Date(validTo).toISOString() },
-      }).where(eq(userTickets.ticketId, id));
+  async update(id: number, { type, status, months }: UpdateTicketDto) {
+    const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
+    if (!ticket) {
+      throw new HttpException("Ticket not found", 404);
     }
 
-    return ticket;
+    const [updatedTicket] = await this.db.update(tickets).set({
+      ...(type && { type }),
+      ...(status && { status }),
+    }).where(eq(tickets.id, id)).returning();
+
+    const res: any = { ...updatedTicket };
+
+    if (updatedTicket.type !== "DAILY" && months) {
+      const [userTicket] = await this.db.select().from(userTickets).where(eq(userTickets.ticketId, id));
+      if (!userTicket) {
+        throw new HttpException("User ticket not found", 404);
+      }
+
+      let validTo = userTicket.validTo ? new Date(userTicket.validTo) : new Date();
+      validTo.setMonth(validTo.getMonth() + months);
+
+      await this.db.update(userTickets).set({ validTo: validTo.toISOString() }).where(eq(userTickets.ticketId, id));
+      res.validTo = validTo.toISOString();
+    }
+    return res;
+  }
+
+  //TODO: Handle ticket lost
+
+  async getPricing() {
+    return await this.db.select().from(ticketPrices);
   }
 
   async updatePricing({ type, price, vehicleType }: UpdateTicketPricingDto) {

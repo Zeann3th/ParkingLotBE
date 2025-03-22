@@ -21,6 +21,7 @@ export class AuthController {
       type: "object",
       properties: {
         username: { type: "string", example: "username" },
+        name: { type: "string", example: "name" },
         password: { type: "string", example: "password" }
       },
     }
