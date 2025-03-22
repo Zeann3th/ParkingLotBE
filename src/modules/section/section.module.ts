@@ -9,6 +9,6 @@ import { NotificationModule } from '../notification/notification.module';
 @Module({
   controllers: [SectionController],
   providers: [SectionService, JwtStrategy],
-  imports: [DrizzleModule, PassportModule, NotificationModule]
+  imports: [DrizzleModule, PassportModule]
 })
 export class SectionModule { }

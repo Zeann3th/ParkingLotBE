@@ -5,7 +5,7 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { CreateMonthlyTicketDto, CreateReservedTicketDto } from './dto/create-ticket.dto';
+import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,6 +30,10 @@ export class TicketController {
     return await this.ticketService.getById(id);
   }
 
+  async create(@Body() body: CreateTicketDto) {
+    return await this.ticketService.create(body);
+  }
+
   @ApiOperation({ summary: "Create batch of daily tickets", description: "Create batch of daily tickets" })
   @ApiBody({
     schema: {
@@ -45,18 +49,8 @@ export class TicketController {
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
   @Post("daily")
-  async createDailyTickets(@Body() body: { amount: number }) {
+  async createDailyTickets(@Body() body: CreateDailyTicketDto) {
     return await this.ticketService.createDailyTickets(body);
-  }
-
-  @Post("monthly")
-  async createMonthlyTicket(@Body() body: CreateMonthlyTicketDto) {
-    return await this.ticketService.createMonthlyTicket(body);
-  }
-
-  @Post("reservation")
-  async createReservedTicket(@Body() body: CreateReservedTicketDto) {
-    return await this.ticketService.createReservedTicket(body);
   }
 
   @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })

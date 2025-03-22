@@ -18,33 +18,38 @@ export class ParkingService {
     }
 
     return await this.db.transaction(async (tx) => {
+      const now = new Date();
+      const nowIso = now.toISOString();
+
       const [ticket] = await tx.select().from(tickets)
         .where(eq(tickets.id, ticketId));
-
       if (!ticket) {
         throw new HttpException("Ticket not found", 404);
       }
-
       if (ticket.status !== "AVAILABLE") {
         throw new HttpException("Ticket is not available", 400);
       }
-
       if (ticket.type === "RESERVED" || ticket.type === "MONTHLY") {
-        const [{ dplate, validFrom, validTo }] = await tx
+        const [ticketDetails] = await tx
           .select({
-            dplate: vehicles.plate,
+            plate: vehicles.plate,
             validFrom: userTickets.validFrom,
-            validTo: userTickets.validTo
-          }).from(userTickets)
+            validTo: userTickets.validTo,
+            reservationSlot: vehicleReservations.slot
+          })
+          .from(userTickets)
           .where(eq(userTickets.ticketId, ticketId))
           .leftJoin(vehicleReservations, eq(userTickets.ticketId, vehicleReservations.ticketId))
           .leftJoin(vehicles, eq(vehicleReservations.vehicleId, vehicles.id));
-        if (dplate !== plate) {
+        if (!ticketDetails) {
+          throw new HttpException("Invalid ticket", 400);
+        }
+        if (ticket.type === "RESERVED" && ticketDetails.plate !== plate) {
           throw new HttpException("Plate does not match", 400);
         }
-        const now = new Date();
-        if (!validFrom || !validTo || new Date(validFrom) > now || new Date(validTo) < now) {
-          throw new HttpException("Invalid ticket", 400);
+        if (!ticketDetails.validFrom || !ticketDetails.validTo ||
+          new Date(ticketDetails.validFrom) > now || new Date(ticketDetails.validTo) < now) {
+          throw new HttpException("Ticket has expired or is not yet valid", 400);
         }
       }
 
@@ -55,12 +60,22 @@ export class ParkingService {
         }
       }
 
-      const vehicle = await this.findOrCreateVehicle(plate, type);
+      const vehicle = await this.findOrCreateVehicle(tx, plate, type);
 
-      await tx.update(tickets).set({ status: "INUSE" }).where(eq(tickets.id, ticketId));
-      const [res] = await tx.insert(history).values({ vehicleId: vehicle.id, sectionId, ticketId }).returning();
+      await tx.update(tickets)
+        .set({ status: "INUSE" })
+        .where(eq(tickets.id, ticketId));
 
-      return { history: res };
+      const [historyRecord] = await tx.insert(history)
+        .values({
+          vehicleId: vehicle.id,
+          sectionId,
+          ticketId,
+          checkedInAt: nowIso
+        })
+        .returning();
+
+      return { history: historyRecord };
     });
   }
 
@@ -128,20 +143,28 @@ export class ParkingService {
 
     return { fee };
   }
+
   async getNumberOfAvailableSlots(sectionId: number) {
     try {
+      const now = new Date().toISOString();
+
       const [{ capacity }] = await this.db.select({ capacity: sections.capacity })
         .from(sections)
         .where(eq(sections.id, sectionId));
 
-      const [{ reservedCount }] = await this.db.select({ reservedCount: count() })
+      const [{ activeReservedCount }] = await this.db.select({ activeReservedCount: count() })
         .from(vehicleReservations)
         .innerJoin(userTickets, eq(vehicleReservations.ticketId, userTickets.ticketId))
         .innerJoin(tickets, eq(userTickets.ticketId, tickets.id))
+        .leftJoin(history, and(
+          eq(history.ticketId, vehicleReservations.ticketId),
+          isNull(history.checkedOutAt)
+        ))
         .where(and(
           eq(vehicleReservations.sectionId, sectionId),
           eq(tickets.type, "RESERVED"),
-          gt(userTickets.validTo, new Date().toISOString())
+          gt(userTickets.validTo, now),
+          isNull(history.id)
         ));
 
       const [{ occupiedCount }] = await this.db.select({ occupiedCount: count() })
@@ -149,25 +172,30 @@ export class ParkingService {
         .innerJoin(tickets, eq(history.ticketId, tickets.id))
         .where(and(
           eq(history.sectionId, sectionId),
-          isNull(history.checkedOutAt),
-          ne(tickets.type, "RESERVED")
+          isNull(history.checkedOutAt)
         ));
 
-      const available = capacity - reservedCount - occupiedCount;
-      return { available, capacity };
+      const available = capacity - activeReservedCount - occupiedCount;
+      return { available, capacity, activeReservedCount, occupiedCount };
     } catch (error) {
       throw new HttpException("Error getting available slots", 500);
     }
   }
 
-  private async findOrCreateVehicle(plate: string, type: "CAR" | "MOTORBIKE") {
-    let [vehicle] = await this.db.select().from(vehicles).where(eq(vehicles.plate, plate));
-    if (!vehicle) {
-      [vehicle] = await this.db.insert(vehicles)
-        .values({ plate, type })
-        .returning();
+  private async findOrCreateVehicle(tx: any, plate: string, type: string) {
+    const [existingVehicle] = await tx.select()
+      .from(vehicles)
+      .where(eq(vehicles.plate, plate));
+
+    if (existingVehicle) {
+      return existingVehicle;
     }
-    return vehicle;
+
+    const [newVehicle] = await tx.insert(vehicles)
+      .values({ plate, type })
+      .returning();
+
+    return newVehicle;
   }
 
   private async calculatePrice(ticketType: TicketType, vehicleType: VehicleType, start: string, end: string) {

@@ -55,7 +55,7 @@ export class ParkingController {
   @ApiResponse({ status: 400, description: "Ticket is not in use" })
   @ApiResponse({ status: 404, description: "Session not found" })
   @ApiResponse({ status: 404, description: "Vehicle not found" })
-  @ApiResponse({ status: 400, description: "Plat does not match" })
+  @ApiResponse({ status: 400, description: "Plate does not match" })
   @ApiResponse({ status: 404, description: "User ticket not found" })
   @HttpCode(200)
   @ApiBearerAuth()

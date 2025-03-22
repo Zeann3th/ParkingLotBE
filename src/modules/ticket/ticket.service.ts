@@ -4,7 +4,7 @@ import { DrizzleDB } from 'src/database/types/drizzle';
 import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
-import { CreateMonthlyTicketDto, CreateReservedTicketDto } from './dto/create-ticket.dto';
+import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 
 @Injectable()
 export class TicketService {
@@ -21,78 +21,83 @@ export class TicketService {
     return ticket;
   }
 
-  async createDailyTickets({ amount }: { amount: number }) {
+  async create(body: CreateTicketDto) {
+    return await this.db.transaction(async (tx) => {
+      const [{ ticketId }] = await tx.insert(tickets)
+        .values({ type: body.type })
+        .returning({ ticketId: tickets.id });
+
+      if (body.type === "DAILY") {
+        return { message: "Daily ticket created successfully", ticketId };
+      }
+
+      const [user] = await tx.select()
+        .from(users)
+        .where(eq(users.id, body.userId));
+      if (!user) {
+        throw new HttpException("User not found", 404);
+      }
+
+      const validTo = new Date();
+      validTo.setMonth(validTo.getMonth() + (body.months ?? 1));
+
+      const [userTicket] = await tx.insert(userTickets)
+        .values({
+          userId: body.userId,
+          ticketId,
+          validTo: validTo.toISOString(),
+        })
+        .returning();
+
+      if (body.type === "MONTHLY") {
+        return { message: "Monthly ticket created successfully", ticketId };
+      }
+
+      if (body.type === "RESERVED") {
+        const [existingSlot] = await tx.select()
+          .from(vehicleReservations)
+          .where(and(
+            eq(vehicleReservations.sectionId, body.sectionId),
+            eq(vehicleReservations.slot, body.slot)
+          ));
+        if (existingSlot) {
+          throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
+        }
+
+        const [vehicle] = await tx.insert(vehicles)
+          .values({ plate: body.plate, type: body.vehicleType })
+          .onConflictDoNothing({ target: vehicles.plate })
+          .returning();
+
+        const vehicleId = vehicle?.id ||
+          (await tx.select({ id: vehicles.id })
+            .from(vehicles)
+            .where(eq(vehicles.plate, body.plate))
+            .then(rows => rows[0]?.id));
+        if (!vehicleId) {
+          throw new HttpException("Failed to create or find vehicle", 500);
+        }
+
+        await tx.insert(vehicleReservations)
+          .values({
+            ticketId,
+            vehicleId,
+            sectionId: body.sectionId,
+            slot: body.slot,
+          });
+        return { message: "Reserved ticket created successfully", ticketId };
+      }
+    });
+  }
+
+  async createDailyTickets({ amount }: CreateDailyTicketDto) {
     const ticketsToCreate = Array.from({ length: amount }, () => ({
       type: 'DAILY' as const,
-      status: 'AVAILABLE' as const,
     }));
 
     await this.db.insert(tickets).values(ticketsToCreate);
     return { message: "Tickets created successfully" };
   }
-
-  async createMonthlyTicket({ userId, months = 1 }: CreateMonthlyTicketDto) {
-    return this.db.transaction(async (tx) => {
-      const [{ ticketId }] = await tx.insert(tickets).values({
-        type: 'MONTHLY',
-        status: 'AVAILABLE',
-      }).returning({ ticketId: tickets.id });
-
-      const validTo = new Date();
-      validTo.setMonth(validTo.getMonth() + months);
-
-      const [user] = await tx.select().from(users).where(eq(users.id, userId));
-      if (!user) {
-        throw new HttpException("User not found", 404);
-      }
-
-      await tx.insert(userTickets).values({
-        userId,
-        ticketId,
-        validTo: validTo.toISOString(),
-      })
-
-      return { message: "Monthly ticket created successfully", ticketId };
-    });
-  }
-
-  async createReservedTicket({ userId, months = 1, vehiclePlate, vehicleType, sectionId, slot }: CreateReservedTicketDto) {
-    return this.db.transaction(async (tx) => {
-      const user = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!user.length) {
-        throw new HttpException("User not found", 404);
-      }
-
-      const [{ ticketId }] = await tx
-        .insert(tickets)
-        .values({ type: "RESERVED", status: "AVAILABLE" })
-        .returning({ ticketId: tickets.id });
-
-      const validTo = new Date();
-      validTo.setMonth(validTo.getMonth() + months);
-
-      let [vehicle] = await tx.select().from(vehicles).where(eq(vehicles.plate, vehiclePlate));
-      if (!vehicle) {
-        [vehicle] = await tx.insert(vehicles).values({ plate: vehiclePlate, type: vehicleType }).returning();
-      }
-
-      await tx.insert(userTickets).values({
-        userId,
-        ticketId,
-        validTo: validTo.toISOString(),
-      });
-
-      await tx.insert(vehicleReservations).values({
-        ticketId,
-        vehicleId: vehicle.id,
-        sectionId,
-        slot,
-      });
-
-      return { message: "Reservation ticket created successfully", ticketId };
-    });
-  }
-
 
   async update(id: number, { type, status, months }: UpdateTicketDto) {
     const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
