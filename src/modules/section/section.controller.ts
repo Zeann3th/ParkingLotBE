@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { SectionService } from './section.service';
 import { CreateSectionDto } from './dto/create-section.dto';
@@ -35,6 +35,14 @@ export class SectionController {
     return await this.sectionService.getById(user, id);
   }
 
+  @ApiOperation({ summary: "Get reserved slots", description: "Get reserved slots" })
+  @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
+  @Get(":id/reserved")
+  async getReservedSlots(@User() user: UserInterface, @Param("id") id: number) {
+    return await this.sectionService.getReservedSlots(user, id);
+  }
+
   @ApiOperation({ summary: "Create a new section", description: "Create a new section" })
   @ApiBody({
     schema: {
@@ -46,6 +54,8 @@ export class SectionController {
     }
   })
   @ApiResponse({ status: 201, description: "Section created successfully" })
+  @ApiResponse({ status: 409, description: "Section name already exists" })
+  @ApiResponse({ status: 500, description: "Failed to create section" })
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Post()
@@ -70,8 +80,8 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Patch(":id")
-  async update(@Param("id") id: number, @Body() body: UpdateSectionDto) {
-    return await this.sectionService.update(id, body);
+  async update(@User() user: UserInterface, @Param("id") id: number, @Body() body: UpdateSectionDto) {
+    return await this.sectionService.update(user, id, body);
   }
 
   @ApiOperation({ summary: "Delete a section", description: "Delete a section" })
@@ -85,15 +95,16 @@ export class SectionController {
     return await this.sectionService.delete(id);
   }
 
-  @ApiOperation({ summary: "Report revenue and coverage of a section", description: "Report revenue and coverage of a section" })
+  @ApiOperation({ summary: "Report revenue of a section", description: "Report revenue of a section" })
   @ApiParam({ name: "id", description: "Section id" })
+  @ApiQuery({ name: "from", description: "From date", example: "2022-01-01", required: false })
+  @ApiQuery({ name: "to", description: "To date", example: "2022-12-31", required: false })
   @ApiResponse({ status: 200, description: "Report generated successfully" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section report" })
   @ApiBearerAuth()
-  @Roles("ADMIN, SECURITY")
+  @Roles("ADMIN", "SECURITY")
   @Post(":id/report")
-  async report(@Param("id") id: number) {
-    //TODO: Implement this to report revenue and coverage of a section
-    //return await this.sectionService.report(id);
+  async report(@User() user: UserInterface, @Param("id") id: number, @Query("from") from: string, @Query("to") to: string) {
+    return await this.sectionService.report(user, id, from, to);
   }
 }

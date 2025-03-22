@@ -1,6 +1,6 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
-export class RegisterUserDto {
+class BaseUserDto {
   @IsString()
   @IsNotEmpty()
   username: string;
@@ -8,18 +8,13 @@ export class RegisterUserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
 
+export class RegisterUserDto extends BaseUserDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   name: string;
 }
 
-export class LoginUserDto {
-  @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @IsString()
-  @IsNotEmpty()
-  password: string;
+export class LoginUserDto extends BaseUserDto {
 }

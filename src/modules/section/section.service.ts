@@ -1,8 +1,8 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, gte, inArray, isNotNull, lte, sum } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { sections, userPrivileges } from 'src/database/schema';
+import { history, notifications, sections, userPrivileges, vehicleReservations } from 'src/database/schema';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 import { Request } from 'express';
@@ -33,12 +33,30 @@ export class SectionService {
     return section;
   }
 
+  async getReservedSlots(user: UserInterface, id: number) {
+    if (user.role !== "ADMIN" && !user.privileges?.includes(id)) {
+      throw new HttpException("You are not allowed to view this section", 403);
+    }
+
+    const res = await this.db.select({ slot: vehicleReservations.slot }).from(vehicleReservations).where(and(
+      eq(vehicleReservations.sectionId, id),
+    ));
+    return res.map(({ slot }) => slot);
+  }
+
   async create({ name, capacity }: CreateSectionDto) {
-    await this.db.insert(sections).values({ name, capacity });
+    try {
+      await this.db.insert(sections).values({ name, capacity });
+    } catch (e: any) {
+      if (e.code === 'SQLITE_CONSTRAINT') {
+        throw new HttpException("Section name already exists", 409);
+      }
+      throw new HttpException("Failed to create section", 500);
+    }
     return { message: "Section created successfully" };
   }
 
-  async update(id: number, { name, capacity, privilegedTo }: UpdateSectionDto) {
+  async update(user: UserInterface, id: number, { name, capacity, privilegedTo }: UpdateSectionDto) {
     let request = {
       ...name && { name },
       ...capacity && { capacity },
@@ -47,9 +65,19 @@ export class SectionService {
     try {
       const [section] = await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
       if (privilegedTo && privilegedTo.length > 0) {
-        await this.db.delete(userPrivileges).where(eq(userPrivileges.sectionId, id));
-        const values = privilegedTo.map(userId => ({ userId, sectionId: id }));
-        await this.db.insert(userPrivileges).values(values);
+        await this.db.transaction(async (tx) => {
+          await tx.delete(userPrivileges).where(eq(userPrivileges.sectionId, id));
+
+          const privilegeValues = privilegedTo.map(userId => ({ userId, sectionId: id }));
+          await tx.insert(userPrivileges).values(privilegeValues);
+
+          const notificationValues = privilegedTo.map(userId => ({
+            from: user.sub,
+            to: userId,
+            message: `You have been granted access to section ${section.name}`
+          }));
+          await tx.insert(notifications).values(notificationValues);
+        });
       }
       return section;
     }
@@ -64,5 +92,29 @@ export class SectionService {
   async delete(id: number) {
     await this.db.delete(sections).where(eq(sections.id, id));
     return {}
+  }
+
+  async report(user: UserInterface, id: number, from: string, to: string) {
+    if (user.role !== "ADMIN" && !user.privileges?.includes(id)) {
+      throw new HttpException("You are not allowed to view this section", 403);
+    }
+
+    if (!from) {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      from = sevenDaysAgo.toISOString();
+    }
+
+    if (!to) {
+      to = new Date().toISOString();
+    }
+
+    let [{ sum: revenue }] = await this.db.select({ sum: sum(history.fee) }).from(history).where(and(
+      eq(history.sectionId, id),
+      gte(history.checkedInAt, from),
+      lte(history.checkedInAt, to),
+    ))
+
+    return { revenue: Number(revenue) || 0 };
   }
 }

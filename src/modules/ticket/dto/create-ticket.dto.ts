@@ -1,13 +1,32 @@
-import { IsNotEmpty, IsOptional, IsString, ValidateIf } from "class-validator";
-import { TicketType } from "src/database/types";
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from "class-validator";
+import { VehicleType } from "src/database/types";
 
-export class CreateTicketDto {
+export class CreateMonthlyTicketDto {
+  @IsInt()
+  @IsNotEmpty()
+  userId: number;
+
+  @IsInt()
+  @IsPositive()
+  @IsOptional()
+  months?: number;
+}
+
+export class CreateReservedTicketDto extends CreateMonthlyTicketDto {
   @IsString()
   @IsNotEmpty()
-  type: TicketType;
+  vehiclePlate: string;
 
-  @ValidateIf((o) => o.type !== "DAILY")
   @IsString()
+  @IsIn(["CAR", "MOTORBIKE"])
   @IsNotEmpty()
-  validTo: string;
+  vehicleType: VehicleType;
+
+  @IsInt()
+  @IsNotEmpty()
+  sectionId: number;
+
+  @IsInt()
+  @IsNotEmpty()
+  slot: number;
 }

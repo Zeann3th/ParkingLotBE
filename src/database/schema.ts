@@ -3,7 +3,7 @@ import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
   username: text().unique().notNull(),
-  name: text().notNull().$default(() => "User" + crypto.randomUUID().substring(0, 5)),
+  name: text().notNull().$default(() => "User_" + crypto.randomUUID().substring(0, 5)),
   password: text().notNull(),
   role: text({ enum: ["ADMIN", "USER", "SECURITY"] }).$default(() => "USER").notNull(),
   refreshToken: text("refresh_token"),
@@ -73,3 +73,12 @@ export const history = sqliteTable("history", {
   ticketId: integer("ticket_id").references(() => tickets.id, { onDelete: "cascade" }),
   fee: real(),
 });
+
+export const notifications = sqliteTable("notifications", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  from: integer("from").notNull().references(() => users.id, { onDelete: "cascade" }),
+  to: integer("to").notNull().references(() => users.id, { onDelete: "cascade" }),
+  message: text().notNull(),
+  readAt: text("read_at"),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+})

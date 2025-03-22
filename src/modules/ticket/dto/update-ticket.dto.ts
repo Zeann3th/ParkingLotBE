@@ -1,22 +1,22 @@
-import { IsDecimal, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { TicketType, VehicleType } from "src/database/types";
+import { IsDecimal, IsIn, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, ValidateIf } from "class-validator";
+import { TicketStatus, TicketType, VehicleType } from "src/database/types";
 
 export class UpdateTicketDto {
   @IsString()
+  @IsIn(["DAILY", "MONTHLY", "RESERVED"])
   @IsOptional()
   type: TicketType;
 
   @IsString()
+  @IsIn(["AVAILABLE", "INUSE", "LOST"])
   @IsOptional()
-  validTo: string;
+  status: TicketStatus;
 
-  @IsString()
+  @ValidateIf((o) => o.type !== "DAILY")
+  @IsInt()
+  @IsPositive()
   @IsOptional()
-  validFrom: string;
-
-  @IsString()
-  @IsOptional()
-  status: "AVAILABLE" | "INUSE" | "LOST";
+  months?: number
 }
 
 export class UpdateTicketPricingDto {
