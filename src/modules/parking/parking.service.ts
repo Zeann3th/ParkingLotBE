@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, gt, isNull, ne } from 'drizzle-orm';
+import { and, count, desc, eq, gt, isNull, ne, notInArray } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { history, sections, ticketPrices, tickets, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
@@ -152,31 +152,24 @@ export class ParkingService {
         .from(sections)
         .where(eq(sections.id, sectionId));
 
-      const [{ activeReservedCount }] = await this.db.select({ activeReservedCount: count() })
-        .from(vehicleReservations)
-        .innerJoin(userTickets, eq(vehicleReservations.ticketId, userTickets.ticketId))
-        .innerJoin(tickets, eq(userTickets.ticketId, tickets.id))
-        .leftJoin(history, and(
-          eq(history.ticketId, vehicleReservations.ticketId),
-          isNull(history.checkedOutAt)
-        ))
-        .where(and(
-          eq(vehicleReservations.sectionId, sectionId),
-          eq(tickets.type, "RESERVED"),
-          gt(userTickets.validTo, now),
-          isNull(history.id)
-        ));
+      const reservedTickets = await this.db.select({ ticketId: vehicleReservations.ticketId }).from(vehicleReservations)
+        .where(eq(vehicleReservations.sectionId, sectionId))
+
+      const reservedCount = reservedTickets.length;
+      const reservedTicketIds = reservedTickets.map(ticket => ticket.ticketId);
 
       const [{ occupiedCount }] = await this.db.select({ occupiedCount: count() })
         .from(history)
         .innerJoin(tickets, eq(history.ticketId, tickets.id))
         .where(and(
           eq(history.sectionId, sectionId),
-          isNull(history.checkedOutAt)
+          isNull(history.checkedOutAt),
+          ne(tickets.type, 'RESERVED'),
+          notInArray(tickets.id, reservedTicketIds)
         ));
 
-      const available = capacity - activeReservedCount - occupiedCount;
-      return { available, capacity, activeReservedCount, occupiedCount };
+      const available = capacity - reservedCount - occupiedCount;
+      return { available, capacity };
     } catch (error) {
       throw new HttpException("Error getting available slots", 500);
     }
