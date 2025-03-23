@@ -144,12 +144,18 @@ export class TicketService {
         throw new HttpException("Ticket is already reserved", 409);
       }
 
-      const [{ vehicleId }] = await tx.insert(vehicles)
-        .values({ plate: body.plate, type: body.vehicleType })
-        .onConflictDoNothing({ target: vehicles.plate })
-        .returning({ vehicleId: vehicles.id });
+      let [vehicle] = await tx.select().from(vehicles)
+        .where(and(
+          eq(vehicles.plate, body.plate),
+          eq(vehicles.type, body.vehicleType)
+        ));
+      if (!vehicle) {
+        [vehicle] = await tx.insert(vehicles)
+          .values({ plate: body.plate, type: body.vehicleType })
+          .returning();
+      }
 
-      if (!vehicleId) {
+      if (!vehicle) {
         throw new HttpException("Failed to create or find vehicle", 500);
       }
 
@@ -166,7 +172,7 @@ export class TicketService {
       await tx.insert(vehicleReservations)
         .values({
           ticketId: id,
-          vehicleId,
+          vehicleId: vehicle.id,
           sectionId: body.sectionId,
           slot: body.slot,
         });

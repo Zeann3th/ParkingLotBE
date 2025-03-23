@@ -30,7 +30,6 @@ export class CronService {
       await this.db.delete(vehicleReservations)
         .where(inArray(vehicleReservations.ticketId, reservedIds));
       this.logger.log(`Deleted ${reservedCount} expired reservations`);
-      return;
     } catch (error) {
       this.logger.error(`Failed to validate reservations: ${error.message}`, error.stack);
     }
