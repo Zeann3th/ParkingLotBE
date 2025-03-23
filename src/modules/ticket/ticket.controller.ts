@@ -6,6 +6,7 @@ import { Roles } from 'src/decorators/role.decorator';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
+import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,7 +14,7 @@ import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 export class TicketController {
   constructor(private readonly ticketService: TicketService) { }
 
-  @ApiOperation({ summary: "Get all tickets", description: "Get all tickets" })
+  @ApiOperation({ summary: "Get all tickets" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all tickets" })
   @Get()
@@ -21,7 +22,7 @@ export class TicketController {
     return await this.ticketService.getAll();
   }
 
-  @ApiOperation({ summary: "Get ticket by id", description: "Get ticket by id" })
+  @ApiOperation({ summary: "Get ticket by id" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return ticket" })
@@ -30,7 +31,7 @@ export class TicketController {
     return await this.ticketService.getById(id);
   }
 
-  @ApiOperation({ summary: "Create a ticket", description: "Create a ticket" })
+  @ApiOperation({ summary: "Create a ticket" })
   @ApiBody({
     schema: {
       type: "object",
@@ -51,7 +52,32 @@ export class TicketController {
     return await this.ticketService.create(body);
   }
 
-  @ApiOperation({ summary: "Create batch of daily tickets", description: "Create batch of daily tickets" })
+  @ApiOperation({ summary: "Reserve a slot by ticket" })
+  @ApiParam({ name: "id", description: "Ticket id" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        plate: { type: "string", example: "B1234CD" },
+        vehicleType: { type: "string", example: "CAR" },
+        sectionId: { type: "number", example: 1 },
+        slot: { type: "number", example: 1 }
+      },
+      required: ["plate", "vehicleType", "sectionId", "slot"]
+    }
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 201, description: "Slot reserved successfully" })
+  @ApiResponse({ status: 409, description: "Slot already reserved" })
+  @ApiResponse({ status: 404, description: "Ticket not found" })
+  @ApiResponse({ status: 400, description: "Ticket is not of type RESERVED" })
+  @ApiResponse({ status: 500, description: "Failed to create or find vehicle" })
+  @Post(":id/reserve")
+  async reserve(@Param("id") id: number, @Body() body: ReserveTicketDto) {
+    return await this.ticketService.reserve(id, body);
+  }
+
+  @ApiOperation({ summary: "Create batch of daily tickets" })
   @ApiBody({
     schema: {
       type: "array",
@@ -65,7 +91,7 @@ export class TicketController {
   })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
-  @Post("daily")
+  @Post("dailies")
   async createDailyTickets(@Body() body: CreateDailyTicketDto) {
     return await this.ticketService.createDailyTickets(body);
   }
@@ -78,7 +104,7 @@ export class TicketController {
     return await this.ticketService.getPricing();
   }
 
-  @ApiOperation({ summary: "Update ticket pricing", description: "Update ticket pricing" })
+  @ApiOperation({ summary: "Update ticket pricing" })
   @ApiBody({
     schema: {
       type: "object",
@@ -96,15 +122,17 @@ export class TicketController {
     return await this.ticketService.updatePricing(body);
   }
 
-  @ApiOperation({ summary: "Update a ticket", description: "Update a ticket" })
+  @ApiOperation({ summary: "Update a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
         type: { type: "string", example: "DAILY" },
-        status: { type: "string", example: "AVAILABLE" }
-      }
+        status: { type: "string", example: "AVAILABLE" },
+        months: { type: "number", example: 1 }
+      },
+      required: []
     }
   })
   @ApiBearerAuth()
@@ -114,7 +142,7 @@ export class TicketController {
     return await this.ticketService.update(id, body);
   }
 
-  @ApiOperation({ summary: "Delete a ticket", description: "Delete a ticket" })
+  @ApiOperation({ summary: "Delete a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
   @ApiResponse({ status: 204, description: "Ticket deleted successfully" })

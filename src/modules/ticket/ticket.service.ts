@@ -2,9 +2,10 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
+import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 
 @Injectable()
 export class TicketService {
@@ -125,6 +126,48 @@ export class TicketService {
       res.validTo = validTo.toISOString();
     }
     return res;
+  }
+
+  async reserve(id: number, body: ReserveTicketDto) {
+    return await this.db.transaction(async (tx) => {
+      const [ticket] = await tx.select().from(tickets).where(eq(tickets.id, id));
+      if (!ticket) {
+        throw new HttpException("Ticket not found", 404);
+      }
+      if (ticket.type !== "RESERVED") {
+        throw new HttpException("Ticket is not of type RESERVED", 400);
+      }
+
+      const [{ vehicleId }] = await tx.insert(vehicles)
+        .values({ plate: body.plate, type: body.vehicleType })
+        .onConflictDoNothing({ target: vehicles.plate })
+        .returning({ vehicleId: vehicles.id });
+
+      if (!vehicleId) {
+        throw new HttpException("Failed to create or find vehicle", 500);
+      }
+
+      const [existingSlot] = await tx.select()
+        .from(vehicleReservations)
+        .leftJoin(userTickets, eq(vehicleReservations.ticketId, userTickets.ticketId))
+        .where(and(
+          eq(vehicleReservations.sectionId, body.sectionId),
+          eq(vehicleReservations.slot, body.slot),
+        ));
+      if (existingSlot) {
+        throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
+      }
+
+      await tx.insert(vehicleReservations)
+        .values({
+          ticketId: id,
+          vehicleId,
+          sectionId: body.sectionId,
+          slot: body.slot,
+        });
+
+      return { message: "Ticket reserved successfully" };
+    });
   }
 
   //TODO: Handle ticket lost

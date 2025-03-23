@@ -15,7 +15,7 @@ import { UserInterface } from 'src/common/types';
 export class ParkingController {
   constructor(private readonly parkingService: ParkingService) { }
 
-  @ApiOperation({ summary: "Check in", description: "Check in" })
+  @ApiOperation({ summary: "Check in" })
   @ApiBody({
     schema: {
       type: "object",
@@ -24,7 +24,8 @@ export class ParkingController {
         ticketId: { type: "number", example: 1 },
         plate: { type: "string", example: "1234" },
         type: { type: "string", example: "CAR" }
-      }
+      },
+      required: ["sectionId", "ticketId", "plate", "type"]
     }
   })
   @ApiResponse({ status: 201, description: "Success" })
@@ -40,13 +41,16 @@ export class ParkingController {
     return await this.parkingService.checkIn(user, body);
   }
 
-  @ApiOperation({ summary: "Check out", description: "Check out" })
+  @ApiOperation({ summary: "Check out" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
-        ticketId: { type: "number", example: 1 }
-      }
+        sectionId: { type: "number", example: 1 },
+        ticketId: { type: "number", example: 1 },
+        plate: { type: "string", example: "1234" }
+      },
+      required: ["sectionId", "ticketId", "plate"]
     }
   })
   @ApiResponse({ status: 200, description: "Success" })

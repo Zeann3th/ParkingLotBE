@@ -14,17 +14,17 @@ import { UserInterface } from 'src/common/types';
 export class SectionController {
   constructor(private readonly sectionService: SectionService) { }
 
-  @ApiOperation({ summary: "Get all sections", description: "Get all sections" })
-  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get all sections" })
   @ApiResponse({ status: 200, description: "Return all sections" })
   @ApiResponse({ status: 403, description: "You are not allowed to view any sections" })
+  @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get()
   async getAll(@User() user: UserInterface) {
     return await this.sectionService.getAll(user);
   }
 
-  @ApiOperation({ summary: "Get section by id", description: "Get section by id" })
+  @ApiOperation({ summary: "Get section by id" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiResponse({ status: 200, description: "Return section" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
@@ -36,6 +36,9 @@ export class SectionController {
   }
 
   @ApiOperation({ summary: "Get reserved slots", description: "Get reserved slots" })
+  @ApiParam({ name: "id", description: "Section id" })
+  @ApiResponse({ status: 200, description: "Return reserved slots" })
+  @ApiResponse({ status: 403, description: "You are not allowed to view this section" })
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get(":id/reserved")
@@ -43,14 +46,15 @@ export class SectionController {
     return await this.sectionService.getReservedSlots(user, id);
   }
 
-  @ApiOperation({ summary: "Create a new section", description: "Create a new section" })
+  @ApiOperation({ summary: "Create a new section" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
         name: { type: "string", example: "B1" },
         capacity: { type: "number", example: 100 }
-      }
+      },
+      required: ["name", "capacity"]
     }
   })
   @ApiResponse({ status: 201, description: "Section created successfully" })
@@ -63,14 +67,15 @@ export class SectionController {
     return await this.sectionService.create(body);
   }
 
-  @ApiOperation({ summary: "Update a section", description: "Update a section" })
+  @ApiOperation({ summary: "Update a section" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiBody({
     schema: {
       type: "object",
       properties: {
         name: { type: "string", example: "B1" },
-        capacity: { type: "number", example: 100 }
+        capacity: { type: "number", example: 100 },
+        privilegedTo: { type: "array", example: [1, 2, 3] }
       }
     }
   })
@@ -84,7 +89,7 @@ export class SectionController {
     return await this.sectionService.update(user, id, body);
   }
 
-  @ApiOperation({ summary: "Delete a section", description: "Delete a section" })
+  @ApiOperation({ summary: "Delete a section" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiResponse({ status: 204, description: "Section deleted successfully" })
   @HttpCode(204)
@@ -95,7 +100,7 @@ export class SectionController {
     return await this.sectionService.delete(id);
   }
 
-  @ApiOperation({ summary: "Report revenue of a section", description: "Report revenue of a section" })
+  @ApiOperation({ summary: "Report revenue of a section" })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiQuery({ name: "from", description: "From date", example: "2022-01-01", required: false })
   @ApiQuery({ name: "to", description: "To date", example: "2022-12-31", required: false })

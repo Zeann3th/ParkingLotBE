@@ -8,7 +8,7 @@ export class HealthcheckController {
 
   constructor(private readonly healthcheckService: HealthcheckService) { }
 
-  @ApiOperation({ summary: "Health Check", description: "Check if the server is running" })
+  @ApiOperation({ summary: "Health Check" })
   @ApiResponse({ status: 200, description: "Server is running" })
   @Get()
   healthCheck() {
