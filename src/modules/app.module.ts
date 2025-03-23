@@ -6,7 +6,6 @@ import { SectionModule } from './section/section.module';
 import { ParkingModule } from './parking/parking.module';
 import { TicketModule } from './ticket/ticket.module';
 import { NotificationModule } from './notification/notification.module';
-import { CronService } from './cron/cron.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
 

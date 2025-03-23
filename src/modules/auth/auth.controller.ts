@@ -46,7 +46,7 @@ export class AuthController {
       required: ["username", "password"]
     }
   })
-  @ApiResponse({ status: 200, description: "Sucess" })
+  @ApiResponse({ status: 200, description: "Success" })
   @ApiResponse({ status: 404, description: "User not found" })
   @ApiResponse({ status: 401, description: "Invalid password" })
   @Post('login')
@@ -55,7 +55,7 @@ export class AuthController {
     const { accessToken, refreshToken, user } = await this.authService.login(body);
     response.cookie("refresh_token", refreshToken, {
       httpOnly: true,
-      secure: env.NODE_ENV === "production" ? true : false,
+      secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/"
     });
@@ -64,7 +64,7 @@ export class AuthController {
 
   @ApiOperation({ summary: "Refresh access token" })
   @ApiCookieAuth("refresh_token")
-  @ApiResponse({ status: 200, description: "Sucess" })
+  @ApiResponse({ status: 200, description: "Success" })
   @ApiResponse({ status: 401, description: "Refresh token is required" })
   @ApiResponse({ status: 401, description: "Refresh token expired" })
   @ApiResponse({ status: 403, description: "Invalid refresh token" })

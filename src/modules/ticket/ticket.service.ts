@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
@@ -138,6 +138,12 @@ export class TicketService {
         throw new HttpException("Ticket is not of type RESERVED", 400);
       }
 
+      const [existingReservation] = await tx.select().from(vehicleReservations)
+        .where(eq(vehicleReservations.ticketId, id));
+      if (existingReservation) {
+        throw new HttpException("Ticket is already reserved", 409);
+      }
+
       const [{ vehicleId }] = await tx.insert(vehicles)
         .values({ plate: body.plate, type: body.vehicleType })
         .onConflictDoNothing({ target: vehicles.plate })
@@ -149,7 +155,6 @@ export class TicketService {
 
       const [existingSlot] = await tx.select()
         .from(vehicleReservations)
-        .leftJoin(userTickets, eq(vehicleReservations.ticketId, userTickets.ticketId))
         .where(and(
           eq(vehicleReservations.sectionId, body.sectionId),
           eq(vehicleReservations.slot, body.slot),
