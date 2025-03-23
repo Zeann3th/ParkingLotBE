@@ -37,7 +37,8 @@ export class NotificationController {
       properties: {
         to: { type: "integer" },
         message: { type: "string" }
-      }
+      },
+      required: ["to", "message"]
     }
   })
   @Post()

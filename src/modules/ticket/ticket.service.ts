@@ -5,6 +5,7 @@ import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicle
 import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
+import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 
 @Injectable()
 export class TicketService {
@@ -125,6 +126,59 @@ export class TicketService {
       res.validTo = validTo.toISOString();
     }
     return res;
+  }
+
+  async reserve(id: number, body: ReserveTicketDto) {
+    return await this.db.transaction(async (tx) => {
+      const [ticket] = await tx.select().from(tickets).where(eq(tickets.id, id));
+      if (!ticket) {
+        throw new HttpException("Ticket not found", 404);
+      }
+      if (ticket.type !== "RESERVED") {
+        throw new HttpException("Ticket is not of type RESERVED", 400);
+      }
+
+      const [existingReservation] = await tx.select().from(vehicleReservations)
+        .where(eq(vehicleReservations.ticketId, id));
+      if (existingReservation) {
+        throw new HttpException("Ticket is already reserved", 409);
+      }
+
+      let [vehicle] = await tx.select().from(vehicles)
+        .where(and(
+          eq(vehicles.plate, body.plate),
+          eq(vehicles.type, body.vehicleType)
+        ));
+      if (!vehicle) {
+        [vehicle] = await tx.insert(vehicles)
+          .values({ plate: body.plate, type: body.vehicleType })
+          .returning();
+      }
+
+      if (!vehicle) {
+        throw new HttpException("Failed to create or find vehicle", 500);
+      }
+
+      const [existingSlot] = await tx.select()
+        .from(vehicleReservations)
+        .where(and(
+          eq(vehicleReservations.sectionId, body.sectionId),
+          eq(vehicleReservations.slot, body.slot),
+        ));
+      if (existingSlot) {
+        throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
+      }
+
+      await tx.insert(vehicleReservations)
+        .values({
+          ticketId: id,
+          vehicleId: vehicle.id,
+          sectionId: body.sectionId,
+          slot: body.slot,
+        });
+
+      return { message: "Ticket reserved successfully" };
+    });
   }
 
   //TODO: Handle ticket lost

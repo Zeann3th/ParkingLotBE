@@ -54,7 +54,7 @@ export class AuthService {
       .set({ refreshToken })
       .where(eq(users.id, user.id))
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, user: payload };
   }
 
   async logout(refreshToken: string) {
