@@ -8,6 +8,7 @@ import { TicketModule } from './ticket/ticket.module';
 import { NotificationModule } from './notification/notification.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
+import { ResidenceModule } from './residence/residence.module';
 
 @Module({
   imports: [
@@ -20,7 +21,10 @@ import { CronModule } from './cron/cron.module';
     TicketModule,
     NotificationModule,
     CronModule,
+    ResidenceModule,
   ],
 })
 export class AppModule {
 }
+
+//TODO: Vehicle module

@@ -11,12 +11,6 @@ export class UpdateTicketDto {
   @IsIn(["AVAILABLE", "INUSE", "LOST"])
   @IsOptional()
   status: TicketStatus;
-
-  @ValidateIf((o) => o.type !== "DAILY")
-  @IsInt()
-  @IsPositive()
-  @IsOptional()
-  months?: number
 }
 
 export class UpdateTicketPricingDto {

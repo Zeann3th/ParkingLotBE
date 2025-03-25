@@ -18,38 +18,32 @@ export class ParkingService {
     }
 
     return await this.db.transaction(async (tx) => {
-      const now = new Date();
-      const nowIso = now.toISOString();
+      const checkedInAt = (new Date()).toISOString();
 
       const [ticket] = await tx.select().from(tickets)
         .where(eq(tickets.id, ticketId));
+
       if (!ticket) {
         throw new HttpException("Ticket not found", 404);
       }
+
       if (ticket.status !== "AVAILABLE") {
         throw new HttpException("Ticket is not available", 400);
       }
-      if (ticket.type === "RESERVED" || ticket.type === "MONTHLY") {
+
+      const vehicle = await this.findOrCreateVehicle(tx, plate, type);
+
+      if (ticket.type !== "DAILY") {
         const [ticketDetails] = await tx
-          .select({
-            plate: vehicles.plate,
-            validFrom: userTickets.validFrom,
-            validTo: userTickets.validTo,
-            reservationSlot: vehicleReservations.slot
-          })
-          .from(userTickets)
-          .where(eq(userTickets.ticketId, ticketId))
-          .leftJoin(vehicleReservations, eq(userTickets.ticketId, vehicleReservations.ticketId))
-          .leftJoin(vehicles, eq(vehicleReservations.vehicleId, vehicles.id));
+          .select().from(tickets)
+          .innerJoin(userTickets, eq(tickets.id, userTickets.ticketId))
+          .where(and(
+            eq(tickets.id, ticketId),
+            eq(userTickets.vehicleId, vehicle.id)
+          ))
+
         if (!ticketDetails) {
           throw new HttpException("Invalid ticket", 400);
-        }
-        if (ticket.type === "RESERVED" && ticketDetails.plate !== plate) {
-          throw new HttpException("Plate does not match", 400);
-        }
-        if (!ticketDetails.validFrom || !ticketDetails.validTo ||
-          new Date(ticketDetails.validFrom) > now || new Date(ticketDetails.validTo) < now) {
-          throw new HttpException("Ticket has expired or is not yet valid", 400);
         }
       }
 
@@ -60,8 +54,6 @@ export class ParkingService {
         }
       }
 
-      const vehicle = await this.findOrCreateVehicle(tx, plate, type);
-
       await tx.update(tickets)
         .set({ status: "INUSE" })
         .where(eq(tickets.id, ticketId));
@@ -71,7 +63,7 @@ export class ParkingService {
           vehicleId: vehicle.id,
           sectionId,
           ticketId,
-          checkedInAt: nowIso
+          checkedInAt
         })
         .returning();
 
@@ -86,59 +78,48 @@ export class ParkingService {
 
     const [ticket] = await this.db.select().from(tickets)
       .where(eq(tickets.id, ticketId));
+
     if (!ticket) {
       throw new HttpException("Ticket not found", 404);
     }
+
     if (ticket.status !== "INUSE") {
       throw new HttpException("Ticket is not in use", 400);
     }
 
+    const [vehicle] = await this.db.select().from(vehicles)
+      .where(eq(vehicles.plate, plate));
+
+    if (!vehicle) {
+      throw new HttpException("Vehicle not found", 404);
+    }
+
     const [session] = await this.db.select().from(history)
-      .leftJoin(vehicles, eq(history.vehicleId, vehicles.id))
       .where(and(
         eq(history.sectionId, sectionId),
         eq(history.ticketId, ticketId),
-        isNull(history.checkedOutAt)
+        eq(history.vehicleId, vehicle.id),
+        isNull(history.checkedOutAt),
       ));
+
     if (!session) {
       throw new HttpException("Session not found", 404);
     }
-    if (!session.vehicles) {
-      throw new HttpException("Vehicle not found", 404);
-    }
-    if (session.vehicles.plate !== plate) {
-      throw new HttpException("Plate does not match", 400);
-    }
 
-    const startDate = new Date(session.history.checkedInAt);
+    const startDate = new Date(session.checkedInAt);
     const endDate = new Date();
     let fee = 0;
 
-    if (ticket.type === 'MONTHLY' || ticket.type === 'RESERVED') {
-      const [userTicket] = await this.db.select().from(userTickets)
-        .where(eq(userTickets.ticketId, ticketId));
-
-      if (!userTicket) {
-        throw new HttpException("User ticket not found", 404);
-      }
-
-      const validTo = new Date(userTicket.validTo);
-
-      if (endDate > validTo) {
-        const vehicleType = session.vehicles?.type;
-        fee = await this.calculatePrice('DAILY', vehicleType, validTo.toISOString(), endDate.toISOString());
-      }
-    } else if (ticket.type === 'DAILY') {
-      const vehicleType = session.vehicles?.type;
-      fee = await this.calculatePrice('DAILY', vehicleType, startDate.toISOString(), endDate.toISOString());
+    if (ticket.type === 'DAILY') {
+      fee = await this.calculatePrice(vehicle.type, startDate.toISOString(), endDate.toISOString());
     }
 
     await this.db.transaction(async (tx) => {
       await tx.update(tickets).set({ status: "AVAILABLE" }).where(eq(tickets.id, ticketId));
       await tx.update(history).set({
         checkedOutAt: endDate.toISOString(),
-        fee: fee > 0 ? fee : null
-      }).where(eq(history.id, session.history.id));
+        fee
+      }).where(eq(history.id, session.id));
     });
 
     return { fee };
@@ -152,7 +133,8 @@ export class ParkingService {
         .from(sections)
         .where(eq(sections.id, sectionId));
 
-      const reservedTickets = await this.db.select({ ticketId: vehicleReservations.ticketId }).from(vehicleReservations)
+      const reservedTickets = await this.db.select({ ticketId: vehicleReservations.ticketId })
+        .from(vehicleReservations)
         .where(eq(vehicleReservations.sectionId, sectionId))
 
       const reservedCount = reservedTickets.length;
@@ -191,23 +173,17 @@ export class ParkingService {
     return newVehicle;
   }
 
-  private async calculatePrice(ticketType: TicketType, vehicleType: VehicleType, start: string, end: string) {
+  private async calculatePrice(vehicleType: VehicleType, start: string, end: string) {
     const startDate = new Date(start);
     const endDate = new Date(end);
 
     const [{ basePrice }] = await this.db.select({ basePrice: ticketPrices.price }).from(ticketPrices)
       .where(and(
-        eq(ticketPrices.type, ticketType),
+        eq(ticketPrices.type, "DAILY"),
         eq(ticketPrices.vehicleType, vehicleType)
       ));
 
     if (!basePrice) throw new Error('Price not found');
-
-    if (ticketType === 'MONTHLY') {
-      const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth());
-      return Math.max(1, months) * basePrice;
-    }
 
     const hourlyRate = basePrice / 24;
     const dayRate = hourlyRate;

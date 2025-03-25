@@ -5,7 +5,7 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
+import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 
 @Controller('tickets')
@@ -38,9 +38,7 @@ export class TicketController {
       properties: {
         type: { type: "string", example: "DAILY" },
         userId: { type: "number", example: 1 },
-        months: { type: "number", example: 1 },
-        plate: { type: "string", example: "B1234CD" },
-        vehicleType: { type: "string", example: "CAR" },
+        vehicleId: { type: "number", example: 1 },
         sectionId: { type: "number", example: 1 },
         slot: { type: "number", example: 1 }
       },
@@ -50,31 +48,6 @@ export class TicketController {
   @Post()
   async create(@Body() body: CreateTicketDto) {
     return await this.ticketService.create(body);
-  }
-
-  @ApiOperation({ summary: "Reserve a slot by ticket" })
-  @ApiParam({ name: "id", description: "Ticket id" })
-  @ApiBody({
-    schema: {
-      type: "object",
-      properties: {
-        plate: { type: "string", example: "B1234CD" },
-        vehicleType: { type: "string", example: "CAR" },
-        sectionId: { type: "number", example: 1 },
-        slot: { type: "number", example: 1 }
-      },
-      required: ["plate", "vehicleType", "sectionId", "slot"]
-    }
-  })
-  @ApiBearerAuth()
-  @ApiResponse({ status: 201, description: "Slot reserved successfully" })
-  @ApiResponse({ status: 409, description: "Slot already reserved" })
-  @ApiResponse({ status: 404, description: "Ticket not found" })
-  @ApiResponse({ status: 400, description: "Ticket is not of type RESERVED" })
-  @ApiResponse({ status: 500, description: "Failed to create or find vehicle" })
-  @Post(":id/reserve")
-  async reserve(@Param("id") id: number, @Body() body: ReserveTicketDto) {
-    return await this.ticketService.reserve(id, body);
   }
 
   @ApiOperation({ summary: "Create batch of daily tickets" })
@@ -92,8 +65,8 @@ export class TicketController {
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
   @Post("dailies")
-  async createDailyTickets(@Body() body: CreateDailyTicketDto) {
-    return await this.ticketService.createDailyTickets(body);
+  async createDailyTickets(@Body("amount") amount: number) {
+    return await this.ticketService.createDailyTickets(amount);
   }
 
   @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
@@ -130,7 +103,6 @@ export class TicketController {
       properties: {
         type: { type: "string", example: "DAILY" },
         status: { type: "string", example: "AVAILABLE" },
-        months: { type: "number", example: 1 }
       },
       required: []
     }

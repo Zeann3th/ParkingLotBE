@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bdda3404-7ace-41d5-bfe5-ca38e9984ab6",
+  "id": "d2d96390-660c-46ed-8db5-2b6dd2906b16",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "history": {
@@ -11,6 +11,13 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -52,6 +59,19 @@
       },
       "indexes": {},
       "foreignKeys": {
+        "history_section_id_sections_id_fk": {
+          "name": "history_section_id_sections_id_fk",
+          "tableFrom": "history",
+          "tableTo": "sections",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "history_vehicle_id_vehicles_id_fk": {
           "name": "history_vehicle_id_vehicles_id_fk",
           "tableFrom": "history",
@@ -62,7 +82,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "history_ticket_id_tickets_id_fk": {
@@ -75,10 +95,187 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "notifications": {
+      "name": "notifications",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "from": {
+          "name": "from",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "to": {
+          "name": "to",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "to_idx": {
+          "name": "to_idx",
+          "columns": [
+            "to"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "notifications_from_users_id_fk": {
+          "name": "notifications_from_users_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "users",
+          "columnsFrom": [
+            "from"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_to_users_id_fk": {
+          "name": "notifications_to_users_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "users",
+          "columnsFrom": [
+            "to"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "residence_vehicles": {
+      "name": "residence_vehicles",
+      "columns": {
+        "residence_id": {
+          "name": "residence_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "residence_vehicles_residence_id_residences_id_fk": {
+          "name": "residence_vehicles_residence_id_residences_id_fk",
+          "tableFrom": "residence_vehicles",
+          "tableTo": "residences",
+          "columnsFrom": [
+            "residence_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "residence_vehicles_vehicle_id_vehicles_id_fk": {
+          "name": "residence_vehicles_vehicle_id_vehicles_id_fk",
+          "tableFrom": "residence_vehicles",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_residence_vehicles": {
+          "columns": [
+            "vehicle_id",
+            "residence_id"
+          ],
+          "name": "pk_residence_vehicles"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "residences": {
+      "name": "residences",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "building": {
+          "name": "building",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "room": {
+          "name": "room",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -150,12 +347,12 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "ticket_prices_type_vehicle_type_pk": {
+        "pk_ticket_prices": {
           "columns": [
             "type",
             "vehicle_type"
           ],
-          "name": "ticket_prices_type_vehicle_type_pk"
+          "name": "pk_ticket_prices"
         }
       },
       "uniqueConstraints": {},
@@ -240,12 +437,71 @@
         }
       },
       "compositePrimaryKeys": {
-        "user_privileges_user_id_section_id_pk": {
+        "pk_user_privileges": {
           "columns": [
             "user_id",
             "section_id"
           ],
-          "name": "user_privileges_user_id_section_id_pk"
+          "name": "pk_user_privileges"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "user_residences": {
+      "name": "user_residences",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "residence_id": {
+          "name": "residence_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_residences_user_id_users_id_fk": {
+          "name": "user_residences_user_id_users_id_fk",
+          "tableFrom": "user_residences",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_residences_residence_id_residences_id_fk": {
+          "name": "user_residences_residence_id_residences_id_fk",
+          "tableFrom": "user_residences",
+          "tableTo": "residences",
+          "columnsFrom": [
+            "residence_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_user_residences": {
+          "columns": [
+            "user_id",
+            "residence_id"
+          ],
+          "name": "pk_user_residences"
         }
       },
       "uniqueConstraints": {},
@@ -268,16 +524,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "valid_from": {
-          "name": "valid_from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "valid_to": {
-          "name": "valid_to",
-          "type": "text",
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -310,15 +559,28 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "user_tickets_vehicle_id_vehicles_id_fk": {
+          "name": "user_tickets_vehicle_id_vehicles_id_fk",
+          "tableFrom": "user_tickets",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "user_tickets_user_id_ticket_id_pk": {
+        "pk_user_tickets": {
           "columns": [
             "user_id",
             "ticket_id"
           ],
-          "name": "user_tickets_user_id_ticket_id_pk"
+          "name": "pk_user_tickets"
         }
       },
       "uniqueConstraints": {},
@@ -336,6 +598,13 @@
         },
         "username": {
           "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -391,6 +660,72 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "vehicle_reservations": {
+      "name": "vehicle_reservations",
+      "columns": {
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "section_id": {
+          "name": "section_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slot": {
+          "name": "slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "vehicle_reservations_ticket_id_tickets_id_fk": {
+          "name": "vehicle_reservations_ticket_id_tickets_id_fk",
+          "tableFrom": "vehicle_reservations",
+          "tableTo": "tickets",
+          "columnsFrom": [
+            "ticket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "vehicle_reservations_section_id_sections_id_fk": {
+          "name": "vehicle_reservations_section_id_sections_id_fk",
+          "tableFrom": "vehicle_reservations",
+          "tableTo": "sections",
+          "columnsFrom": [
+            "section_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "pk_vehicle_reservations": {
+          "columns": [
+            "section_id",
+            "slot"
+          ],
+          "name": "pk_vehicle_reservations"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "vehicles": {
       "name": "vehicles",
       "columns": {
@@ -413,13 +748,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "reserved_slot": {
-          "name": "reserved_slot",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
           "autoincrement": false
         }
       },

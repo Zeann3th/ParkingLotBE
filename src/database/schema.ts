@@ -11,6 +11,26 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
+export const residences = sqliteTable("residences", {
+  id: integer().primaryKey({ autoIncrement: true }),
+  building: text().notNull(),
+  room: integer().notNull()
+})
+
+export const userResidences = sqliteTable("user_residences", {
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" })
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.residenceId], name: "pk_user_residences" }),
+])
+
+export const residenceVehicles = sqliteTable("residence_vehicles", {
+  residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" }),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" })
+}, (table) => [
+  primaryKey({ columns: [table.vehicleId, table.residenceId], name: "pk_residence_vehicles" }),
+])
+
 export const sections = sqliteTable("sections", {
   id: integer().primaryKey({ autoIncrement: true }),
   name: text().unique().notNull(),
@@ -32,7 +52,6 @@ export const vehicles = sqliteTable("vehicles", {
 
 export const vehicleReservations = sqliteTable("vehicle_reservations", {
   ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
-  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" }),
   sectionId: integer("section_id").notNull().references(() => sections.id, { onDelete: "cascade" }),
   slot: integer().notNull(),
 }, (table) => [
@@ -56,8 +75,7 @@ export const ticketPrices = sqliteTable("ticket_prices", {
 export const userTickets = sqliteTable("user_tickets", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
-  validFrom: text("valid_from").$default(() => new Date().toISOString()).notNull(),
-  validTo: text("valid_to").notNull(),
+  vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" }),
 }, (table) => [
   primaryKey({ columns: [table.userId, table.ticketId], name: "pk_user_tickets" }),
 ]);
@@ -77,7 +95,7 @@ export const notifications = sqliteTable("notifications", {
   from: integer("from").notNull().references(() => users.id, { onDelete: "cascade" }),
   to: integer("to").notNull().references(() => users.id, { onDelete: "cascade" }),
   message: text().notNull(),
-  readAt: text("read_at"),
+  status: text("status", { enum: ["PENDING", "READ", "DELETED"] }).$default(() => "PENDING"),
   createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   index("to_idx").on(table.to)
