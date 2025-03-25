@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsNumber, IsString } from "class-validator";
 import { VehicleType } from "src/database/types";
 
 export class CheckInDto {
@@ -15,6 +15,7 @@ export class CheckInDto {
   plate: string;
 
   @IsString()
+  @IsIn(["CAR", "MOTOBIKE"])
   @IsNotEmpty()
   type: VehicleType;
 }

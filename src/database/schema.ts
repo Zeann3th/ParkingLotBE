@@ -63,7 +63,7 @@ export const vehicleReservations = sqliteTable("vehicle_reservations", {
 export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
   type: text("type", { enum: ["MONTHLY", "DAILY", "RESERVED"] }).notNull(),
-  status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST"] }).$default(() => "AVAILABLE").notNull(),
+  status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST", "CANCELED"] }).$default(() => "AVAILABLE").notNull(),
 });
 
 export const ticketPrices = sqliteTable("ticket_prices", {

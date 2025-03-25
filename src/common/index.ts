@@ -10,6 +10,8 @@ const schema = z.object({
 
   JWT_ACCESS_SECRET: z.string({ required_error: "ACCESS_SECRET is required" }),
   JWT_REFRESH_SECRET: z.string({ required_error: "REFRESH_SECRET is required" }),
+
+  CACHE_URL: z.string({ required_error: "CACHE_URL is required" }),
 })
 
 export type Env = z.infer<typeof schema>;

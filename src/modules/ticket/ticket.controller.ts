@@ -18,7 +18,7 @@ export class TicketController {
   @ApiOperation({ summary: "Get all tickets" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all tickets" })
-  @Roles("ADMIN", "USER")
+  @Roles("ADMIN", "SECURITY", "USER")
   @Get()
   async getAll(@User() user: UserInterface) {
     return await this.ticketService.getAll(user);
@@ -28,10 +28,10 @@ export class TicketController {
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return ticket" })
-  @Roles("ADMIN", "USER")
+  @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
   async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
-    return await this.ticketService.getById(id);
+    return await this.ticketService.getById(user, id);
   }
 
   @ApiOperation({ summary: "Create a ticket" })
@@ -75,6 +75,7 @@ export class TicketController {
   @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Get ticket pricing" })
+  @Roles("ADMIN", "SECURITY", "USER")
   @Get("pricing")
   async getPricing() {
     return await this.ticketService.getPricing();
@@ -119,6 +120,24 @@ export class TicketController {
     return await this.ticketService.update(id, body);
   }
 
+  @ApiOperation({ summary: "Cancel user's ticket subscription" })
+  @ApiParam({ name: "id", description: "Ticket id" })
+  @ApiBody({
+    type: "object",
+    schema: {
+      properties: {
+        sectionId: { type: "number", example: 1 }
+      },
+      required: ["sectionId"]
+    }
+  })
+  @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY", "USER")
+  @Patch(":id/cancel")
+  async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("sectionId", ParseIntPipe) sectionId: number) {
+    return await this.ticketService.cancel(user, id, sectionId);
+  }
+
   @ApiOperation({ summary: "Delete a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
@@ -141,4 +160,4 @@ export class TicketController {
 
 
 
- 
+

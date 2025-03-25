@@ -20,10 +20,17 @@ export class ResidenceService {
   }
 
   async create({ building, room }: CreateResidenceDto) {
-    await this.db.insert(residences).values({
-      building,
-      room
-    });
+    try {
+      await this.db.insert(residences).values({
+        building,
+        room
+      });
+    } catch (error: any) {
+      if (error.code === 'SQLITE_CONSTRAINT') {
+        throw new HttpException("Residence already exists", 409);
+      }
+      throw new HttpException("Failed to create residence", 500);
+    }
     return { message: `Residence room ${room}, building ${building} successfully created` };
   }
 
@@ -161,6 +168,6 @@ export class ResidenceService {
     }
 
     await this.db.delete(residences).where(eq(residences.id, id))
-    return {};
+    return;
   }
 }

@@ -30,7 +30,8 @@ export class AuthService {
   }
 
   async login({ username, password }: LoginUserDto) {
-    const [user] = await this.db.select().from(users).where(eq(users.username, username));
+    const [user] = await this.db.select().from(users)
+      .where(eq(users.username, username));
     if (!user) {
       throw new HttpException("User not found", 404);
     }

@@ -90,8 +90,15 @@ export class SectionService {
   }
 
   async delete(id: number) {
+    const [section] = await this.db.select().from(sections)
+      .where(eq(sections.id, id));
+
+    if (!section) {
+      throw new HttpException("Section not found", 404);
+    }
+
     await this.db.delete(sections).where(eq(sections.id, id));
-    return {}
+    return;
   }
 
   async report(user: UserInterface, id: number, from: string, to: string) {
