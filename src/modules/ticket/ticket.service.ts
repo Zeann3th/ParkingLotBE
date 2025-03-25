@@ -17,10 +17,10 @@ export class TicketService {
     if (user.role === "ADMIN") {
       return await this.db.select().from(tickets);
     } else {
-      const [ticket] = await this.db.select().from(tickets)
+      const ticketList = await this.db.select().from(tickets)
         .innerJoin(userTickets, eq(userTickets.ticketId, tickets.id))
         .where(eq(userTickets.userId, user.sub))
-      return { ...ticket.tickets, ...ticket.user_tickets }
+      return ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
     }
   }
 
@@ -51,6 +51,10 @@ export class TicketService {
         .where(eq(sections.id, sectionId))
       if (!section) {
         throw new HttpException("Section not found", 404);
+      }
+
+      if (slot < 1 || slot > section.capacity) {
+        throw new HttpException("Invalid slot number", 400);
       }
 
       const [vehicle] = await tx.select()

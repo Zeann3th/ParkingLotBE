@@ -148,7 +148,7 @@ export class ResidenceService {
       eq(residenceVehicles.vehicleId, vehicleId)
     ))
 
-    return { message: `Vehicle ${vehicleId} added to residence ${id}` }
+    return { message: `Vehicle ${vehicleId} removed from residence ${id}` }
   }
 
 

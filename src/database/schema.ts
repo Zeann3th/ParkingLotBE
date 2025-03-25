@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, real, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -15,7 +15,9 @@ export const residences = sqliteTable("residences", {
   id: integer().primaryKey({ autoIncrement: true }),
   building: text().notNull(),
   room: integer().notNull()
-})
+}, (table) => [
+  uniqueIndex("unique_residence_idx").on(table.building, table.room)
+])
 
 export const userResidences = sqliteTable("user_residences", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
