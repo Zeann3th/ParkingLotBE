@@ -1,11 +1,5 @@
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, ValidateIf } from "class-validator";
-import { TicketType, VehicleType } from "src/database/types";
-
-export class CreateDailyTicketDto {
-  @IsInt()
-  @IsPositive()
-  amount: number;
-}
+import { IsIn, IsInt, IsNotEmpty, IsString, ValidateIf } from "class-validator";
+import { TicketType } from "src/database/types";
 
 export class CreateTicketDto {
   @IsString()
@@ -20,20 +14,8 @@ export class CreateTicketDto {
 
   @ValidateIf((o) => o.type !== "DAILY")
   @IsInt()
-  @IsPositive()
-  @IsOptional()
-  months?: number;
-
-  @ValidateIf((o) => o.type === "RESERVED")
-  @IsString()
   @IsNotEmpty()
-  plate: string;
-
-  @ValidateIf((o) => o.type === "RESERVED")
-  @IsString()
-  @IsIn(["CAR", "MOTORBIKE"])
-  @IsNotEmpty()
-  vehicleType: VehicleType;
+  vehicleId: number;
 
   @ValidateIf((o) => o.type === "RESERVED")
   @IsInt()

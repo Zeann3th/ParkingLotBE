@@ -1,20 +1,27 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
+import { sections, ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
-import { CreateDailyTicketDto, CreateTicketDto } from './dto/create-ticket.dto';
+import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class TicketService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll() {
-    const ticket = await this.db.select().from(tickets);
-    return ticket;
+  async getAll(user: UserInterface) {
+    if (user.role === "ADMIN") {
+      return await this.db.select().from(tickets);
+    } else {
+      const ticketList = await this.db.select().from(tickets)
+        .innerJoin(userTickets, eq(userTickets.ticketId, tickets.id))
+        .where(eq(userTickets.userId, user.sub))
+      return ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
+    }
   }
 
   async getById(id: number) {
@@ -22,76 +29,82 @@ export class TicketService {
     return ticket;
   }
 
-  async create(body: CreateTicketDto) {
+  async create({ type, userId, vehicleId, sectionId, slot }: CreateTicketDto) {
     return await this.db.transaction(async (tx) => {
       const [{ ticketId }] = await tx.insert(tickets)
-        .values({ type: body.type })
+        .values({ type })
         .returning({ ticketId: tickets.id });
 
-      if (body.type === "DAILY") {
+      if (type === "DAILY") {
         return { message: "Daily ticket created successfully", ticketId };
       }
 
       const [user] = await tx.select()
         .from(users)
-        .where(eq(users.id, body.userId));
+        .where(eq(users.id, userId));
       if (!user) {
         throw new HttpException("User not found", 404);
       }
 
-      const validTo = new Date();
-      validTo.setMonth(validTo.getMonth() + (body.months ?? 1));
+      const [section] = await tx.select()
+        .from(sections)
+        .where(eq(sections.id, sectionId))
+      if (!section) {
+        throw new HttpException("Section not found", 404);
+      }
+
+      if (slot < 1 || slot > section.capacity) {
+        throw new HttpException("Invalid slot number", 400);
+      }
+
+      const [vehicle] = await tx.select()
+        .from(vehicles)
+        .where(eq(vehicles.id, vehicleId))
+      if (!vehicle) {
+        throw new HttpException("Vehicle not found", 404);
+      }
+
 
       const [userTicket] = await tx.insert(userTickets)
         .values({
-          userId: body.userId,
+          userId,
           ticketId,
-          validTo: validTo.toISOString(),
+          vehicleId
         })
         .returning();
 
-      if (body.type === "MONTHLY") {
+      if (type === "MONTHLY") {
         return { message: "Monthly ticket created successfully", ticketId };
       }
 
-      if (body.type === "RESERVED") {
-        const [existingSlot] = await tx.select()
-          .from(vehicleReservations)
-          .where(and(
-            eq(vehicleReservations.sectionId, body.sectionId),
-            eq(vehicleReservations.slot, body.slot)
-          ));
-        if (existingSlot) {
-          throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
-        }
-
-        const [vehicle] = await tx.insert(vehicles)
-          .values({ plate: body.plate, type: body.vehicleType })
-          .onConflictDoNothing({ target: vehicles.plate })
-          .returning();
-
-        const vehicleId = vehicle?.id ||
-          (await tx.select({ id: vehicles.id })
-            .from(vehicles)
-            .where(eq(vehicles.plate, body.plate))
-            .then(rows => rows[0]?.id));
-        if (!vehicleId) {
-          throw new HttpException("Failed to create or find vehicle", 500);
-        }
-
-        await tx.insert(vehicleReservations)
-          .values({
-            ticketId,
-            vehicleId,
-            sectionId: body.sectionId,
-            slot: body.slot,
-          });
-        return { message: "Reserved ticket created successfully", ticketId };
+      if (vehicle.type !== "CAR") {
+        throw new HttpException("Vehicle must be a car to reserve a slot", 400);
       }
+
+      const [existingSlot] = await tx.select()
+        .from(vehicleReservations)
+        .where(and(
+          eq(vehicleReservations.sectionId, sectionId),
+          eq(vehicleReservations.slot, slot)
+        ));
+      if (existingSlot) {
+        throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
+      }
+
+      await tx.insert(vehicleReservations)
+        .values({
+          ticketId,
+          sectionId,
+          slot,
+        });
+      return { message: "Reserved ticket created successfully", ticketId };
     });
   }
 
-  async createDailyTickets({ amount }: CreateDailyTicketDto) {
+  async createDailyTickets(amount: number) {
+    if (amount <= 0) {
+      throw new HttpException("Amount must be greater than 0", 400);
+    }
     const ticketsToCreate = Array.from({ length: amount }, () => ({
       type: 'DAILY' as const,
     }));
@@ -100,7 +113,7 @@ export class TicketService {
     return { message: "Tickets created successfully" };
   }
 
-  async update(id: number, { type, status, months }: UpdateTicketDto) {
+  async update(id: number, { type, status }: UpdateTicketDto) {
     const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
     if (!ticket) {
       throw new HttpException("Ticket not found", 404);
@@ -110,78 +123,8 @@ export class TicketService {
       ...(type && { type }),
       ...(status && { status }),
     }).where(eq(tickets.id, id)).returning();
-
-    const res: any = { ...updatedTicket };
-
-    if (updatedTicket.type !== "DAILY" && months) {
-      const [userTicket] = await this.db.select().from(userTickets).where(eq(userTickets.ticketId, id));
-      if (!userTicket) {
-        throw new HttpException("User ticket not found", 404);
-      }
-
-      let validTo = userTicket.validTo ? new Date(userTicket.validTo) : new Date();
-      validTo.setMonth(validTo.getMonth() + months);
-
-      await this.db.update(userTickets).set({ validTo: validTo.toISOString() }).where(eq(userTickets.ticketId, id));
-      res.validTo = validTo.toISOString();
-    }
-    return res;
+    return updatedTicket;
   }
-
-  async reserve(id: number, body: ReserveTicketDto) {
-    return await this.db.transaction(async (tx) => {
-      const [ticket] = await tx.select().from(tickets).where(eq(tickets.id, id));
-      if (!ticket) {
-        throw new HttpException("Ticket not found", 404);
-      }
-      if (ticket.type !== "RESERVED") {
-        throw new HttpException("Ticket is not of type RESERVED", 400);
-      }
-
-      const [existingReservation] = await tx.select().from(vehicleReservations)
-        .where(eq(vehicleReservations.ticketId, id));
-      if (existingReservation) {
-        throw new HttpException("Ticket is already reserved", 409);
-      }
-
-      let [vehicle] = await tx.select().from(vehicles)
-        .where(and(
-          eq(vehicles.plate, body.plate),
-          eq(vehicles.type, body.vehicleType)
-        ));
-      if (!vehicle) {
-        [vehicle] = await tx.insert(vehicles)
-          .values({ plate: body.plate, type: body.vehicleType })
-          .returning();
-      }
-
-      if (!vehicle) {
-        throw new HttpException("Failed to create or find vehicle", 500);
-      }
-
-      const [existingSlot] = await tx.select()
-        .from(vehicleReservations)
-        .where(and(
-          eq(vehicleReservations.sectionId, body.sectionId),
-          eq(vehicleReservations.slot, body.slot),
-        ));
-      if (existingSlot) {
-        throw new HttpException(`Slot ${body.slot} is already reserved`, 409);
-      }
-
-      await tx.insert(vehicleReservations)
-        .values({
-          ticketId: id,
-          vehicleId: vehicle.id,
-          sectionId: body.sectionId,
-          slot: body.slot,
-        });
-
-      return { message: "Ticket reserved successfully" };
-    });
-  }
-
-  //TODO: Handle ticket lost
 
   async getPricing() {
     return await this.db.select().from(ticketPrices);

@@ -35,7 +35,11 @@ export class NotificationService {
     return { message: "Notification created successfully" };
   }
 
-  async update(user: UserInterface, id: number) {
+  async read(user: UserInterface, id: number, status: string) {
+    if (status !== "READ" && status !== "DELETED") {
+      throw new HttpException("Invalid notification's status", 400)
+    }
+
     const [notification] = await this.db.select().from(notifications)
       .where(and(
         eq(notifications.id, id),
@@ -45,32 +49,25 @@ export class NotificationService {
       throw new HttpException("Notification not found", 404);
     }
 
-    const readAt = new Date().toISOString();
-    await this.db.update(notifications).set({ readAt }).where(
+    await this.db.update(notifications).set({ status }).where(
       and(
         eq(notifications.id, id),
         eq(notifications.to, user.sub)
       )
     );
-    return { message: "Notification marked as read" };
+    return { message: `Notification marked as ${status}` };
   }
 
-  async delete(user: UserInterface, id: number) {
+  async delete(id: number) {
     const [notification] = await this.db.select().from(notifications)
-      .where(and(
-        eq(notifications.id, id),
-        eq(notifications.to, user.sub)
-      ));
+      .where(eq(notifications.id, id));
 
     if (!notification) {
       throw new HttpException("Notification not found", 404);
     }
 
-    await this.db.delete(notifications).where(
-      and(
-        eq(notifications.id, id),
-        eq(notifications.to, user.sub)
-      ));
+    await this.db.delete(notifications)
+      .where(eq(notifications.id, id));
     return {};
   }
 }

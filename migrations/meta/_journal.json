@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1742386739119,
-      "tag": "0000_loving_boomerang",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1742391702186,
-      "tag": "0001_smiling_lenny_balinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1742479307940,
-      "tag": "0002_adorable_raza",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1742607136958,
-      "tag": "0003_jittery_luke_cage",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1742630807310,
-      "tag": "0004_past_doctor_doom",
+      "when": 1742884859137,
+      "tag": "0000_closed_marauders",
       "breakpoints": true
     }
   ]

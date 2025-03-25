@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { SectionService } from './section.service';
@@ -31,7 +31,7 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get(":id")
-  async getById(@User() user: UserInterface, @Param("id") id: number) {
+  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
     return await this.sectionService.getById(user, id);
   }
 
@@ -42,7 +42,7 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get(":id/reserved")
-  async getReservedSlots(@User() user: UserInterface, @Param("id") id: number) {
+  async getReservedSlots(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
     return await this.sectionService.getReservedSlots(user, id);
   }
 
@@ -85,7 +85,7 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Patch(":id")
-  async update(@User() user: UserInterface, @Param("id") id: number, @Body() body: UpdateSectionDto) {
+  async update(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body() body: UpdateSectionDto) {
     return await this.sectionService.update(user, id, body);
   }
 
@@ -96,7 +96,7 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Delete(":id")
-  async delete(@Param("id") id: number) {
+  async delete(@Param("id", ParseIntPipe) id: number) {
     return await this.sectionService.delete(id);
   }
 
@@ -109,7 +109,7 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Post(":id/report")
-  async report(@User() user: UserInterface, @Param("id") id: number, @Query("from") from: string, @Query("to") to: string) {
+  async report(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Query("from") from: string, @Query("to") to: string) {
     return await this.sectionService.report(user, id, from, to);
   }
 }
