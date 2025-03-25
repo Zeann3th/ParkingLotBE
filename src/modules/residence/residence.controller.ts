@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ResidenceService } from './residence.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
@@ -26,7 +26,7 @@ export class ResidenceController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return residence by id" })
   @Get(":id")
-  async getById(@Param("id") id: number) {
+  async getById(@Param("id", ParseIntPipe) id: number) {
     return await this.residenceService.getById(id);
   }
 
@@ -65,7 +65,7 @@ export class ResidenceController {
   @ApiResponse({ status: 400, description: "No fields to update" })
   @ApiResponse({ status: 404, description: "Residence not found" })
   @Patch(":id")
-  async update(@Param("id") id: number, @Body() body: UpdateResidenceDto) {
+  async update(@Param("id", ParseIntPipe) id: number, @Body() body: UpdateResidenceDto) {
     return await this.residenceService.update(id, body)
   }
 
@@ -86,7 +86,7 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "Residence not found" })
   @ApiResponse({ status: 404, description: "User not found" })
   @Post(":id/residents")
-  async addResident(@Param("id") id: number, @Body("userId") userId: number) {
+  async addResident(@Param("id", ParseIntPipe) id: number, @Body("userId", ParseIntPipe) userId: number) {
     return await this.residenceService.addResident(id, userId);
   }
 
@@ -108,7 +108,7 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "User not found" })
   @ApiResponse({ status: 404, description: "User not found in residence" })
   @Delete(":id/residents")
-  async removeResident(@Param("id") id: number, @Body("userId") userId: number) {
+  async removeResident(@Param("id", ParseIntPipe) id: number, @Body("userId", ParseIntPipe) userId: number) {
     return await this.residenceService.removeResident(id, userId);
   }
 
@@ -129,7 +129,7 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "Residence not found" })
   @ApiResponse({ status: 404, description: "Vehicle not found" })
   @Post(":id/vehicles")
-  async addVehicle(@Param("id") id: number, @Body("vehicleId") vehicleId: number) {
+  async addVehicle(@Param("id", ParseIntPipe) id: number, @Body("vehicleId", ParseIntPipe) vehicleId: number) {
     return await this.residenceService.addVehicle(id, vehicleId);
   }
 
@@ -151,7 +151,7 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "Vehicle not found" })
   @ApiResponse({ status: 404, description: "Vehicle not found in residence" })
   @Delete(":id/vehicles")
-  async removeVehicle(@Param("id") id: number, @Body("vehicleId") vehicleId: number) {
+  async removeVehicle(@Param("id", ParseIntPipe) id: number, @Body("vehicleId", ParseIntPipe) vehicleId: number) {
     return await this.residenceService.removeVehicle(id, vehicleId);
   }
 
@@ -162,7 +162,7 @@ export class ResidenceController {
   @ApiResponse({ status: 204, description: "Residence deleted" })
   @ApiResponse({ status: 404, description: "Residence not found" })
   @Delete(":id")
-  async delete(@Param("id") id: number) {
+  async delete(@Param("id", ParseIntPipe) id: number) {
     return await this.residenceService.delete(id);
   }
 }

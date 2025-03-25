@@ -1,5 +1,5 @@
 import { IsIn, IsInt, IsNotEmpty, IsString, ValidateIf } from "class-validator";
-import { TicketType, VehicleType } from "src/database/types";
+import { TicketType } from "src/database/types";
 
 export class CreateTicketDto {
   @IsString()
@@ -14,6 +14,7 @@ export class CreateTicketDto {
 
   @ValidateIf((o) => o.type !== "DAILY")
   @IsInt()
+  @IsNotEmpty()
   vehicleId: number;
 
   @ValidateIf((o) => o.type === "RESERVED")

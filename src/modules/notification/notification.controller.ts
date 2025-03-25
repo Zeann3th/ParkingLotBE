@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -28,7 +28,7 @@ export class NotificationController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
-  async getById(@User() user: UserInterface, @Param("id") id: number) {
+  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
     return await this.notificationService.getById(user, id);
   }
 
@@ -57,7 +57,7 @@ export class NotificationController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
   @Patch(":id")
-  async read(@User() user: UserInterface, @Param("id") id: number, @Body("action") action: string) {
+  async read(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("action") action: string) {
     return await this.notificationService.read(user, id, action);
   }
 
@@ -68,7 +68,7 @@ export class NotificationController {
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Delete(":id")
-  async delete(@Param("id") id: number) {
+  async delete(@Param("id", ParseIntPipe) id: number) {
     return await this.notificationService.delete(id);
   }
 }

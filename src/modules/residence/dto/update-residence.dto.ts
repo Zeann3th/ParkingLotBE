@@ -7,5 +7,5 @@ export class UpdateResidenceDto {
 
   @IsInt()
   @IsOptional()
-  room?: number
+  room?: number;
 }

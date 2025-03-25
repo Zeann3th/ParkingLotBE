@@ -100,3 +100,14 @@ export const notifications = sqliteTable("notifications", {
 }, (table) => [
   index("to_idx").on(table.to)
 ])
+
+export const transactions = sqliteTable("transactions", {
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: real().notNull(),
+  month: integer().notNull(),
+  year: integer().notNull(),
+  status: text("status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.month, table.year], name: "pk_transactions" }),
+])
+

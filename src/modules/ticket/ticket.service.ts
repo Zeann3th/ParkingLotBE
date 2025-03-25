@@ -6,15 +6,22 @@ import { and, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class TicketService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll() {
-    const ticket = await this.db.select().from(tickets);
-    return ticket;
+  async getAll(user: UserInterface) {
+    if (user.role === "ADMIN") {
+      return await this.db.select().from(tickets);
+    } else {
+      const [ticket] = await this.db.select().from(tickets)
+        .innerJoin(userTickets, eq(userTickets.ticketId, tickets.id))
+        .where(eq(userTickets.userId, user.sub))
+      return { ...ticket.tickets, ...ticket.user_tickets }
+    }
   }
 
   async getById(id: number) {
@@ -66,25 +73,27 @@ export class TicketService {
         return { message: "Monthly ticket created successfully", ticketId };
       }
 
-      if (type === "RESERVED") {
-        const [existingSlot] = await tx.select()
-          .from(vehicleReservations)
-          .where(and(
-            eq(vehicleReservations.sectionId, sectionId),
-            eq(vehicleReservations.slot, slot)
-          ));
-        if (existingSlot) {
-          throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
-        }
-
-        await tx.insert(vehicleReservations)
-          .values({
-            ticketId,
-            sectionId,
-            slot,
-          });
-        return { message: "Reserved ticket created successfully", ticketId };
+      if (vehicle.type !== "CAR") {
+        throw new HttpException("Vehicle must be a car to reserve a slot", 400);
       }
+
+      const [existingSlot] = await tx.select()
+        .from(vehicleReservations)
+        .where(and(
+          eq(vehicleReservations.sectionId, sectionId),
+          eq(vehicleReservations.slot, slot)
+        ));
+      if (existingSlot) {
+        throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
+      }
+
+      await tx.insert(vehicleReservations)
+        .values({
+          ticketId,
+          sectionId,
+          slot,
+        });
+      return { message: "Reserved ticket created successfully", ticketId };
     });
   }
 

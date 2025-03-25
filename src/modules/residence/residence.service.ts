@@ -81,7 +81,7 @@ export class ResidenceService {
       throw new HttpException("User not found", 404);
     }
 
-    const existUserInResidence = await this.db.select().from(userResidences)
+    const [existUserInResidence] = await this.db.select().from(userResidences)
       .where(and(
         eq(userResidences.userId, userId),
         eq(userResidences.residenceId, id)
@@ -134,7 +134,7 @@ export class ResidenceService {
       throw new HttpException("Vehicle not found", 404);
     }
 
-    const existVehicleInResidence = await this.db.select().from(residenceVehicles)
+    const [existVehicleInResidence] = await this.db.select().from(residenceVehicles)
       .where(and(
         eq(residenceVehicles.residenceId, id),
         eq(residenceVehicles.vehicleId, vehicleId)
