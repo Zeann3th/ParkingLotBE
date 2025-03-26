@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { residenceVehicles, userResidences, vehicles } from 'src/database/schema';
+import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
@@ -10,14 +10,21 @@ import { CreateVehicleDto } from './dto/create-vehicle.dto';
 export class VehicleService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll() {
-    return await this.db.select().from(vehicles);
+  async getAll(user: UserInterface) {
+    const vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+      .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+      .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+
+    return vehicleList.map(({ vehicle, residence }) => ({ ...vehicle, residence }));
   }
 
-  async getById(id: number) {
+  async getById(user: UserInterface, id: number) {
     const [vehicle] = await this.db.select().from(vehicles)
-      .where(eq(vehicles.id, id));
-    return vehicle;
+      .where(eq(vehicles.id, id))
+      .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+      .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+
+    return { ...vehicle.vehicles, residence: vehicle.residences };
   }
 
   async create({ plate, type }: CreateVehicleDto) {
@@ -26,6 +33,8 @@ export class VehicleService {
         plate,
         type
       });
+
+      return { message: "Vehicle created successfully" };
     } catch (error: any) {
       if (error.code === "SQLITE_CONSTRAINT") {
         throw new HttpException("Vehicle's plate already exists", 409);

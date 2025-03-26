@@ -48,7 +48,7 @@ export class TicketController {
       required: ["type"]
     }
   })
-  @Roles("ADMIN")
+  @Roles("ADMIN", "SECURITY")
   @Post()
   async create(@Body() body: CreateTicketDto) {
     return await this.ticketService.create(body);
@@ -66,7 +66,7 @@ export class TicketController {
   })
   @ApiBearerAuth()
   @ApiResponse({ status: 201, description: "Tickets created successfully" })
-  @Roles("ADMIN")
+  @Roles("ADMIN", "SECURITY")
   @Post("dailies")
   async createDailyTickets(@Body("amount") amount: number) {
     return await this.ticketService.createDailyTickets(amount);
@@ -120,6 +120,25 @@ export class TicketController {
     return await this.ticketService.update(id, body);
   }
 
+  @ApiOperation({ summary: "Reserve a slot" })
+  @ApiParam({ name: "id", description: "Ticket id" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        sectionId: { type: "number", example: 1 },
+        slot: { type: "number", example: 1 }
+      },
+      required: ["sectionId", "slot"]
+    }
+  })
+  @ApiBearerAuth()
+  @Roles("USER")
+  @Patch(":id/reserve")
+  async reserve(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body() body: ReserveTicketDto) {
+    return await this.ticketService.reserve(user, id, body);
+  }
+
   @ApiOperation({ summary: "Cancel user's ticket subscription" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
@@ -132,7 +151,7 @@ export class TicketController {
     }
   })
   @ApiBearerAuth()
-  @Roles("ADMIN", "SECURITY", "USER")
+  @Roles("USER")
   @Patch(":id/cancel")
   async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("sectionId", ParseIntPipe) sectionId: number) {
     return await this.ticketService.cancel(user, id, sectionId);

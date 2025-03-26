@@ -11,25 +11,24 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
 import { ResidenceModule } from './residence/residence.module';
 import { VehicleModule } from './vehicle/vehicle.module';
-import { RedisModule } from '@nestjs-modules/ioredis';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    RedisModule.forRoot({
-      type: "single",
-      url: env.CACHE_URL
-    }),
+    //RedisModule.forRoot({
+    //  type: "single",
+    //  url: env.CACHE_URL
+    //}),
     HealthcheckModule,
-    AuthModule, // DONE
-    SectionModule, // DONE
-    ParkingModule, // DONE
-    TicketModule, // DONE    
-    NotificationModule, // DONE
+    AuthModule,
+    SectionModule,
+    ParkingModule,
+    TicketModule,
+    NotificationModule,
     CronModule, // no transactions yet
-    ResidenceModule, // RBAC Crisis
-    VehicleModule, // RBAC Crisis
+    ResidenceModule, //TODO: Get residences' users and vehicles 
+    VehicleModule,
   ],
 })
 export class AppModule {
