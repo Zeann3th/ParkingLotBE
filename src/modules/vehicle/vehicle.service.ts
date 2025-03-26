@@ -24,6 +24,10 @@ export class VehicleService {
       .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
       .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
 
+    if (!vehicle) {
+      throw new HttpException("Vehicle not found", 404);
+    }
+
     return { ...vehicle.vehicles, residence: vehicle.residences };
   }
 

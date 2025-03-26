@@ -7,7 +7,7 @@ export class CreateVehicleDto {
   plate: string;
 
   @IsString()
-  @IsIn(["CAR", "MOTOBIKE"])
+  @IsIn(["CAR", "MOTORBIKE"])
   @IsNotEmpty()
   type: VehicleType;
 }

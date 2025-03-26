@@ -15,7 +15,7 @@ export class CheckInDto {
   plate: string;
 
   @IsString()
-  @IsIn(["CAR", "MOTOBIKE"])
+  @IsIn(["CAR", "MOTORBIKE"])
   @IsNotEmpty()
   type: VehicleType;
 }
