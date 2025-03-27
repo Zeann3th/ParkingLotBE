@@ -85,7 +85,7 @@ export class AuthController {
     const refreshToken = request.cookies["refresh_token"]
     await this.authService.logout(refreshToken);
     response.clearCookie("refresh_token");
-    return response.send();
+    return response.status(204).send();
   }
 
   @ApiOperation({ summary: "Update user credentials and privileges" })

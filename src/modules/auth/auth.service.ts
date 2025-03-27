@@ -156,9 +156,9 @@ export class AuthService {
   }
 
   async resetPassword({ email, password, pin }: ResetUserPasswordDto) {
-    const cachedEmail = await this.redis.get(`reset:${email}`);
+    const cachedPin = await this.redis.get(`reset:${email}`);
 
-    if (!cachedEmail) throw new HttpException("Invalid or expired token", 403);
+    if (!cachedPin || cachedPin !== pin) throw new HttpException("Invalid or expired token", 403);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -177,9 +177,9 @@ export class AuthService {
   }
 
   async verifyEmail({ email, pin }: VerifyUserEmailDto) {
-    const cachedEmail = await this.redis.get(`verify:${email}`);
+    const cachedPin = await this.redis.get(`verify:${email}`);
 
-    if (!cachedEmail) throw new HttpException("Invalid or expired token", 403);
+    if (!cachedPin || cachedPin !== pin) throw new HttpException("Invalid or expired token", 403);
 
     const [user] = await this.db.select().from(users)
       .where(eq(users.email, email));
