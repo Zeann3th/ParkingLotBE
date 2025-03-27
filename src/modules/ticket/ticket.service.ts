@@ -13,17 +13,22 @@ export class TicketService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface) {
-    const ticketList = await this.db.select().from(tickets)
-      .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id));
+  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+    let ticketList: any;
+    if (user.role === "ADMIN" || user.role === "SECURITY") {
+      ticketList = await this.db.select().from(tickets)
+        .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id))
+        .limit(limit).offset((page - 1) * limit);
+    } else {
+      ticketList = await this.db.select().from(userTickets)
+        .where(eq(userTickets.userId, user.sub))
+        .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+        .limit(limit).offset((page - 1) * limit);
+    }
 
     const res = ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
 
-    if (user.role === "ADMIN" || user.role === "SECURITY") {
-      return res;
-    }
-
-    return res.filter(({ userId }) => userId === user.sub);
+    return res;
   }
 
   async getById(user: UserInterface, id: number) {
@@ -136,14 +141,18 @@ export class TicketService {
   }
 
   async update(id: number, { type, status }: UpdateTicketDto) {
+    if (!type && !status) {
+      throw new HttpException("Missing required fields in payload", 400);
+    }
+
     const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
     if (!ticket) {
       throw new HttpException("Ticket not found", 404);
     }
 
     const [updatedTicket] = await this.db.update(tickets).set({
-      ...(type && { type }),
-      ...(status && { status }),
+      type: type ?? ticket.type,
+      status: status ?? ticket.status
     }).where(eq(tickets.id, id)).returning();
     return updatedTicket;
   }

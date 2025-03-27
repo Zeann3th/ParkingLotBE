@@ -10,7 +10,7 @@ import { CreateVehicleDto } from './dto/create-vehicle.dto';
 export class VehicleService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface, plate: string | undefined) {
+  async getAll(user: UserInterface, plate?: string, page: number = 1, limit: number = 10) {
     let vehicleList: any;
     if (plate) {
       vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
@@ -20,7 +20,8 @@ export class VehicleService {
     } else {
       vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
         .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
-        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId))
+        .limit(limit).offset((page - 1) * limit);
     }
 
     return vehicleList.map(({ vehicle, residence }) => ({ ...vehicle, residence }));
