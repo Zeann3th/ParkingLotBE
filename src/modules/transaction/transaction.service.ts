@@ -48,7 +48,7 @@ export class TransactionService {
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
     let transactionList: any;
-    if (user.role !== "ADMIN") {
+    if (user.role === "ADMIN") {
       transactionList = await this.db.select().from(transactions)
         .orderBy(desc(transactions.id))
         .limit(limit).offset((page - 1) * limit);

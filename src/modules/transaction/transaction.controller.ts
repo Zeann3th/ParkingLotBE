@@ -95,8 +95,6 @@ export class TransactionController {
     schema: {
       properties: {
         amount: { type: "number" },
-        month: { type: "number" },
-        year: { type: "number" },
         status: { type: "string" }
       },
       required: []
