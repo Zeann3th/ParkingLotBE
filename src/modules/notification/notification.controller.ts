@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -7,19 +7,38 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import Redis from 'ioredis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) { }
+  constructor(
+    private readonly notificationService: NotificationService,
+    @InjectRedis() private readonly redis: Redis
+  ) { }
 
   @ApiOperation({ summary: "Get all notifications" })
   @ApiResponse({ status: 200, description: "Return all notifications" })
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
   @Get()
-  async getAll(@User() user: UserInterface) {
-    return await this.notificationService.getAll(user);
+  async getAll(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface,
+    @Query("page", ParseIntPipe) page: number,
+    @Query("limit", ParseIntPipe) limit: number
+  ) {
+    const key = user.role === "ADMIN" ? `notifications` : `notifications:${user.sub}`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedNotifications = await this.redis.get(key);
+      if (cachedNotifications) {
+        return JSON.parse(cachedNotifications);
+      }
+    }
+    const notifications = await this.notificationService.getAll(user, page, limit);
+    await this.redis.set(key, JSON.stringify(notifications), "EX", 60 * 15);
+    return notifications;
   }
 
   @ApiOperation({ summary: "Get notification by id" })
@@ -28,8 +47,21 @@ export class NotificationController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
-  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
-    return await this.notificationService.getById(user, id);
+  async getById(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface,
+    @Param("id", ParseIntPipe) id: number
+  ) {
+    const key = user.role === "ADMIN" ? `notifications:${id}` : `notifications:${user.sub}:${id}`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedNotification = await this.redis.get(key);
+      if (cachedNotification) {
+        return JSON.parse(cachedNotification);
+      }
+    }
+    const notification = await this.notificationService.getById(user, id);
+    await this.redis.set(key, JSON.stringify(notification), "EX", 60 * 15);
+    return notification;
   }
 
   @ApiOperation({ summary: "Create notification" })

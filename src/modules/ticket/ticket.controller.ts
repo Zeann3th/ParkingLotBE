@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards, Headers, Query } from '@nestjs/common';
 import { TicketService } from './ticket.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
@@ -9,19 +9,38 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TicketController {
-  constructor(private readonly ticketService: TicketService) { }
+  constructor(
+    private readonly ticketService: TicketService,
+    @InjectRedis() private readonly redis: Redis
+  ) { }
 
   @ApiOperation({ summary: "Get all tickets" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all tickets" })
   @Roles("ADMIN", "SECURITY", "USER")
   @Get()
-  async getAll(@User() user: UserInterface) {
-    return await this.ticketService.getAll(user);
+  async getAll(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface,
+    @Query("page") page: number,
+    @Query("limit") limit: number
+  ) {
+    const key = user.role !== "USER" ? `tickets:${page}:${limit}` : `tickets:${user.sub}:${page}:${limit}`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedTickets = await this.redis.get(key);
+      if (cachedTickets) {
+        return JSON.parse(cachedTickets);
+      }
+    }
+    const tickets = await this.ticketService.getAll(user, page, limit);
+    await this.redis.set(key, JSON.stringify(tickets), "EX", 60 * 15);
+    return tickets;
   }
 
   @ApiOperation({ summary: "Get ticket by id" })
@@ -30,8 +49,20 @@ export class TicketController {
   @ApiResponse({ status: 200, description: "Return ticket" })
   @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
-  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
-    return await this.ticketService.getById(user, id);
+  async getById(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface,
+    @Param("id", ParseIntPipe) id: number) {
+    const key = user.role !== "USER" ? `tickets:${id}` : `tickets:${user.sub}:${id}`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedTicket = await this.redis.get(key);
+      if (cachedTicket) {
+        return JSON.parse(cachedTicket);
+      }
+    }
+    const ticket = await this.ticketService.getById(user, id);
+    await this.redis.set(key, JSON.stringify(ticket), "EX", 60 * 15);
+    return ticket;
   }
 
   @ApiOperation({ summary: "Create a ticket" })
@@ -77,8 +108,16 @@ export class TicketController {
   @ApiResponse({ status: 200, description: "Get ticket pricing" })
   @Roles("ADMIN", "SECURITY")
   @Get("pricing")
-  async getPricing() {
-    return await this.ticketService.getPricing();
+  async getPricing(@Headers("Cache-Control") cacheOption: string) {
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedPricing = await this.redis.get("tickets:pricing");
+      if (cachedPricing) {
+        return JSON.parse(cachedPricing);
+      }
+    }
+    const pricing = await this.ticketService.getPricing();
+    await this.redis.set("tickets:pricing", JSON.stringify(pricing), "EX", 60 * 15);
+    return pricing;
   }
 
   @ApiOperation({ summary: "Update ticket pricing" })

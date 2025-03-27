@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query, ParseIntPipe, Headers } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { SectionService } from './section.service';
@@ -8,11 +8,16 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
+import Redis from 'ioredis';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 
 @Controller('sections')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SectionController {
-  constructor(private readonly sectionService: SectionService) { }
+  constructor(
+    private readonly sectionService: SectionService,
+    @InjectRedis() private readonly redis: Redis
+  ) { }
 
   @ApiOperation({ summary: "Get all sections" })
   @ApiResponse({ status: 200, description: "Return all sections" })
@@ -20,8 +25,20 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get()
-  async getAll(@User() user: UserInterface) {
-    return await this.sectionService.getAll(user);
+  async getAll(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface
+  ) {
+    const key = `sections`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedSections = await this.redis.get(key);
+      if (cachedSections) {
+        return JSON.parse(cachedSections);
+      }
+    }
+    const sections = await this.sectionService.getAll(user);
+    await this.redis.set(key, JSON.stringify(sections), "EX", 60 * 60);
+    return sections;
   }
 
   @ApiOperation({ summary: "Get section by id" })
@@ -31,8 +48,22 @@ export class SectionController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Get(":id")
-  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
-    return await this.sectionService.getById(user, id);
+  async getById(
+    @Headers("Cache-Control") cacheOption: string,
+    @User() user: UserInterface,
+    @Param("id", ParseIntPipe) id: number
+  ) {
+    const key = `sections:${id}`;
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedSection = await this.redis.get(key);
+      if (cachedSection) {
+        return JSON.parse(cachedSection);
+      }
+    }
+
+    const section = await this.sectionService.getById(user, id);
+    await this.redis.set(key, JSON.stringify(section), "EX", 60 * 60);
+    return section;
   }
 
   @ApiOperation({ summary: "Get reserved slots", description: "Get reserved slots" })

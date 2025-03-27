@@ -13,17 +13,22 @@ export class TicketService {
 
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface) {
-    const ticketList = await this.db.select().from(tickets)
-      .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id));
+  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+    let ticketList: any;
+    if (user.role === "ADMIN" || user.role === "SECURITY") {
+      ticketList = await this.db.select().from(tickets)
+        .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id))
+        .limit(limit).offset((page - 1) * limit);
+    } else {
+      ticketList = await this.db.select().from(userTickets)
+        .where(eq(userTickets.userId, user.sub))
+        .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+        .limit(limit).offset((page - 1) * limit);
+    }
 
     const res = ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
 
-    if (user.role === "ADMIN" || user.role === "SECURITY") {
-      return res;
-    }
-
-    return res.filter(({ userId }) => userId === user.sub);
+    return res;
   }
 
   async getById(user: UserInterface, id: number) {

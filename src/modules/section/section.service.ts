@@ -14,7 +14,7 @@ export class SectionService {
 
   async getAll(user: UserInterface) {
     if (user.role === "ADMIN") {
-      return await this.db.select().from(sections);
+      return await this.db.select().from(sections)
     }
 
     if (!user.privileges) {

@@ -44,4 +44,22 @@ export class TransactionService {
     return;
   }
 
+  async getAll(userId: string, month?: number, year?: number) {
+  }
+
+  async getById(id: string) {
+  }
+
+  async create() {
+
+  }
+
+  async update() {
+
+  }
+
+  async delete() {
+
+  }
+
 }
