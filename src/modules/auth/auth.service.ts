@@ -16,10 +16,10 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) { }
 
-  async register({ username, password, name }: RegisterUserDto) {
+  async register({ username, email, password, name }: RegisterUserDto) {
     password = await bcrypt.hash(password, 10);
     try {
-      await this.db.insert(users).values({ username, password, name });
+      await this.db.insert(users).values({ username, email, password, name });
       return { message: "User registered successfully" };
     } catch (e: any) {
       if (e.code === 'SQLITE_CONSTRAINT') {
@@ -29,17 +29,25 @@ export class AuthService {
     }
   }
 
-  async login({ username, password }: LoginUserDto) {
-    const [user] = await this.db.select().from(users)
-      .where(eq(users.username, username));
+  async login({ username, email, password }: LoginUserDto) {
+    let user: any;
+    if (username) {
+      [user] = await this.db.select().from(users)
+        .where(eq(users.username, username));
+    } else if (email) {
+      [user] = await this.db.select().from(users)
+        .where(eq(users.email, email));
+    }
+
     if (!user) {
       throw new HttpException("User not found", 404);
     }
+
     if (!await bcrypt.compare(password, user.password)) {
       throw new HttpException("Invalid password", 401);
     }
 
-    const payload = { sub: user.id, username: user.username, role: user.role };
+    const payload = { sub: user.id, username: user.username, email: user.email, role: user.role };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: env.JWT_ACCESS_SECRET,
@@ -95,23 +103,43 @@ export class AuthService {
     }
   }
 
-  async update(id: number, { password, role, name }: UpdateUserDto) {
+  async update(id: number, { role, name, email }: UpdateUserDto) {
     const [existingUser] = await this.db.select().from(users).where(eq(users.id, id));
     if (!existingUser) {
       throw new HttpException("User not found", 404);
     }
-    const updateData = {
-      ...(name && { name }),
-      ...(password && { password: await bcrypt.hash(password, 10) }),
-      ...(role && { role: role }),
-      updatedAt: new Date().toISOString()
-    };
 
-    const [res] = await this.db.update(users)
-      .set(updateData)
-      .where(eq(users.id, id)).returning();
+    try {
+      const updateData = {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(role && { role: role }),
+        updatedAt: new Date().toISOString()
+      };
 
-    const { password: pwd, refreshToken, ...safeUser } = res;
-    return safeUser;
+      const [res] = await this.db.update(users)
+        .set(updateData)
+        .where(eq(users.id, id)).returning();
+
+      const { password: pwd, refreshToken, ...safeUser } = res;
+      return safeUser;
+    } catch (error: any) {
+      if (error.code === 'SQLITE_CONSTRAINT') {
+        throw new HttpException("User already exists", 409);
+      }
+      throw new HttpException("Failed to update user", 500);
+    }
+  }
+
+  async forgotPassword(email: string) {
+  }
+
+  async resetPassword(token: string, password: string) {
+  }
+
+  async verifyEmail(token: string) {
+  }
+
+  async resendEmail(email: string, action: string) {
   }
 }

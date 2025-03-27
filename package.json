@@ -28,6 +28,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^5.0.1",
     "@nestjs/swagger": "^11.0.6",
+    "@nestjs/throttler": "^6.4.0",
     "@types/nodemailer": "^6.4.17",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",

@@ -15,6 +15,13 @@
       "when": 1742906741212,
       "tag": "0001_flat_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1743068058361,
+      "tag": "0002_glorious_power_pack",
+      "breakpoints": true
     }
   ]
 }

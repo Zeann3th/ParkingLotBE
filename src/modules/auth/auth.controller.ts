@@ -106,4 +106,20 @@ export class AuthController {
   async update(@Param("id") id: number, @Body() body: UpdateUserDto) {
     return this.authService.update(id, body)
   }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body("email") email: string) {
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body("token") token: string, @Body("password") password: string) {
+  }
+
+  @Post("verify-email")
+  async verifyEmail(@Body("token") token: string) {
+  }
+
+  @Post("resend-email")
+  async resendEmail(@Body("email") email: string) {
+  }
 }
