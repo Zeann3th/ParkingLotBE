@@ -57,8 +57,8 @@ export class NotificationController {
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
   @Patch(":id")
-  async read(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("action") action: string) {
-    return await this.notificationService.read(user, id, action);
+  async update(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("action") action: string) {
+    return await this.notificationService.update(user, id, action);
   }
 
   @ApiOperation({ summary: "Delete notification" })

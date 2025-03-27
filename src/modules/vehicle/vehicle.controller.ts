@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { VehicleService } from './vehicle.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
@@ -18,8 +18,8 @@ export class VehicleController {
   @ApiResponse({ status: 200, description: "Returns all vehicles with their residence info (if exist)" })
   @Roles("ADMIN", "SECURITY")
   @Get()
-  async getAll(@User() user: UserInterface) {
-    return this.vehicleService.getAll(user);
+  async getAll(@User() user: UserInterface, @Query("plate") plate?: string) {
+    return this.vehicleService.getAll(user, plate);
   }
 
   @ApiOperation({ summary: "Get vehicle by id" })

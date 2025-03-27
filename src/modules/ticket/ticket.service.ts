@@ -153,15 +153,16 @@ export class TicketService {
       const [{ ticket, userTicket, vehicle }] = await tx
         .select({ ticket: tickets, userTicket: userTickets, vehicle: vehicles })
         .from(userTickets)
-        .where(and(
-          eq(userTickets.ticketId, id),
-          eq(userTickets.userId, user.sub)
-        ))
+        .where(eq(userTickets.ticketId, id))
         .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
         .leftJoin(vehicles, eq(vehicles.id, userTickets.vehicleId));
 
       if (!ticket) {
         throw new HttpException("Ticket not found or not accessible", 404);
+      }
+
+      if (user.role !== "ADMIN" && user.sub !== userTicket.userId) {
+        throw new HttpException("Not authorized to reserve a slot for this ticket", 403);
       }
 
       if (ticket.type !== "RESERVED") {
@@ -183,6 +184,10 @@ export class TicketService {
         throw new HttpException("Section not found", 404);
       }
 
+      if (slot < 1 || slot > section.capacity) {
+        throw new HttpException("Invalid slot number", 400);
+      }
+
       const [existingSlot] = await tx.select().from(vehicleReservations)
         .where(and(
           eq(vehicleReservations.sectionId, sectionId),
@@ -193,7 +198,7 @@ export class TicketService {
         throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
       }
 
-      await this.db.insert(vehicleReservations).values({
+      await tx.insert(vehicleReservations).values({
         ticketId: ticket.id,
         sectionId,
         slot
@@ -205,18 +210,20 @@ export class TicketService {
 
   async cancel(user: UserInterface, id: number, sectionId: number) {
     await this.db.transaction(async (tx) => {
+
       const [{ ticket, userTicket, vehicle }] = await tx
         .select({ ticket: tickets, userTicket: userTickets, vehicle: vehicles })
         .from(userTickets)
-        .where(and(
-          eq(userTickets.ticketId, id),
-          eq(userTickets.userId, user.sub)
-        ))
+        .where(eq(userTickets.ticketId, id))
         .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
         .leftJoin(vehicles, eq(vehicles.id, userTickets.vehicleId));
 
       if (!ticket) {
         throw new HttpException("Ticket not found or not accessible", 404);
+      }
+
+      if (user.role !== "ADMIN" && user.sub !== userTicket.userId) {
+        throw new HttpException("Not authorized to cancel this ticket", 403);
       }
 
       if (ticket.status === "CANCELED") {
@@ -241,10 +248,20 @@ export class TicketService {
         return { message: "User's subscription canceled" };
       }
 
+      const [existingSlot] = await tx.select().from(vehicleReservations)
+        .where(and(
+          eq(vehicleReservations.ticketId, ticket.id),
+          eq(vehicleReservations.sectionId, sectionId)
+        ));
+
+      if (!existingSlot) {
+        throw new HttpException("No reservation found for this ticket in the specified section", 400);
+      }
+
       await tx.delete(vehicleReservations).where(and(
         eq(vehicleReservations.ticketId, ticket.id),
         eq(vehicleReservations.sectionId, sectionId)
-      ))
+      ));
     });
 
     return { message: "User's subscription canceled, slot unreserved" };
