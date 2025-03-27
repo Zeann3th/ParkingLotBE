@@ -8,11 +8,17 @@ import { eq } from 'drizzle-orm';
 import { JwtService } from '@nestjs/jwt';
 import env from 'src/common';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { MailService } from './mail.service';
+import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(DRIZZLE) private db: DrizzleDB,
+    @InjectRedis() private readonly redis: Redis,
+    private readonly mailService: MailService,
     private readonly jwtService: JwtService,
   ) { }
 
@@ -20,6 +26,7 @@ export class AuthService {
     password = await bcrypt.hash(password, 10);
     try {
       await this.db.insert(users).values({ username, email, password, name });
+      this.mailService.sendVerifyEmail(email);
       return { message: "User registered successfully" };
     } catch (e: any) {
       if (e.code === 'SQLITE_CONSTRAINT') {
@@ -72,7 +79,7 @@ export class AuthService {
         .set({ refreshToken: null })
         .where(eq(users.refreshToken, refreshToken))
     }
-    return {};
+    return;
   }
 
   async refresh(refreshToken: string) {
@@ -132,14 +139,81 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
+    if (!email) throw new HttpException("Email is required", 400);
+
+    const [user] = await this.db.select().from(users)
+      .where(eq(users.email, email));
+
+    if (!user) throw new HttpException("User not found", 404);
+
+    try {
+      await this.mailService.sendResetPasswordEmail(email);
+    } catch (e) {
+      throw new HttpException("Failed to send email", 500);
+    }
+
+    return { message: "Password reset email sent" };
   }
 
-  async resetPassword(token: string, password: string) {
+  async resetPassword({ email, password, pin }: ResetUserPasswordDto) {
+    const cachedEmail = await this.redis.get(`reset:${email}`);
+
+    if (!cachedEmail) throw new HttpException("Invalid or expired token", 403);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const [user] = await this.db.select().from(users)
+      .where(eq(users.email, email));
+
+    if (!user) throw new HttpException("User not found", 404);
+
+    await this.db.update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.email, email));
+
+    await this.redis.del(`reset:${email}`);
+
+    return { message: "Password reset successfully" };
   }
 
-  async verifyEmail(token: string) {
+  async verifyEmail({ email, pin }: VerifyUserEmailDto) {
+    const cachedEmail = await this.redis.get(`verify:${email}`);
+
+    if (!cachedEmail) throw new HttpException("Invalid or expired token", 403);
+
+    const [user] = await this.db.select().from(users)
+      .where(eq(users.email, email));
+
+    if (!user) throw new HttpException("User not found", 404);
+
+    await this.db.update(users)
+      .set({ isVerified: 1 })
+      .where(eq(users.email, email));
+
+    await this.redis.del(`verify:${email}`);
+
+    return { message: "Email verified successfully" };
   }
 
   async resendEmail(email: string, action: string) {
+    if (!email || !action) throw new HttpException("Email and action are required", 400);
+    if (action !== 'verify' && action !== 'reset') throw new HttpException("Invalid action", 400);
+
+    const [user] = await this.db.select().from(users)
+      .where(eq(users.email, email));
+
+    if (!user) throw new HttpException("User not found", 404);
+
+    try {
+      if (action === 'verify') {
+        await this.mailService.sendVerifyEmail(email);
+      } else if (action === 'reset') {
+        await this.mailService.sendResetPasswordEmail(email);
+      }
+    } catch (e) {
+      throw new HttpException("Failed to send email", 500);
+    }
+
+    return { message: "Email sent successfully" };
   }
 }

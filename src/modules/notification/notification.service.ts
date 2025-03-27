@@ -32,9 +32,9 @@ export class NotificationService {
   }
 
   async create(user: UserInterface, { to, message }: CreateNotificationDto) {
-    let recipient: number | undefined = to;
+    let recipientId: number | undefined = to;
 
-    if (!recipient) {
+    if (!recipientId) {
       const [admin] = await this.db.select().from(users)
         .where(eq(users.role, "ADMIN"));
 
@@ -42,13 +42,20 @@ export class NotificationService {
         throw new HttpException("Admin not found", 404);
       }
 
-      recipient = admin.id;
+      recipientId = admin.id;
+    } else {
+      const [recipientUser] = await this.db.select().from(users)
+        .where(eq(users.id, recipientId));
+
+      if (!recipientUser) {
+        throw new HttpException("Recipient not found", 404);
+      }
     }
 
     await this.db.insert(notifications)
       .values({
         from: user.sub,
-        to: recipient,
+        to: recipientId,
         message
       })
       .returning();

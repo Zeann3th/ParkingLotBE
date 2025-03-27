@@ -8,6 +8,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
 
 @ApiTags("Authentication")
 @Controller('auth')
@@ -80,9 +81,11 @@ export class AuthController {
   @ApiResponse({ status: 204, description: "Refresh token removed from server and database's cookies" })
   @Get('logout')
   @HttpCode(204)
-  async logout(@Req() request: Request) {
+  async logout(@Req() request: Request, @Res() response: Response) {
     const refreshToken = request.cookies["refresh_token"]
-    return this.authService.logout(refreshToken)
+    await this.authService.logout(refreshToken);
+    response.clearCookie("refresh_token");
+    return response.send();
   }
 
   @ApiOperation({ summary: "Update user credentials and privileges" })
@@ -92,7 +95,7 @@ export class AuthController {
       type: "object",
       properties: {
         name: { type: "string", example: "name" },
-        password: { type: "string", example: "password" },
+        email: { type: "string", example: "email" },
         role: { type: "string", example: "ADMIN" }
       },
       required: []
@@ -107,19 +110,84 @@ export class AuthController {
     return this.authService.update(id, body)
   }
 
+  @ApiOperation({ summary: "Send forgot password request and mail" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        email: { type: "string", example: "email" }
+      },
+      required: ["email"]
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 400, description: "Email is required" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @HttpCode(200)
   @Post('forgot-password')
   async forgotPassword(@Body("email") email: string) {
+    return this.authService.forgotPassword(email);
   }
 
+  @ApiOperation({ summary: "Reset user password" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        email: { type: "string", example: "email" },
+        password: { type: "string", example: "password" },
+        pin: { type: "string", example: "token" }
+      },
+      required: ["email", "password", "pin"]
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 403, description: "Invalid or expired token" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @HttpCode(200)
   @Post('reset-password')
-  async resetPassword(@Body("token") token: string, @Body("password") password: string) {
+  async resetPassword(@Body() body: ResetUserPasswordDto) {
+    return this.authService.resetPassword(body);
   }
 
+  @ApiOperation({ summary: "Verify user email" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        email: { type: "string", example: "email" },
+        pin: { type: "string", example: "token" }
+      },
+      required: ["email", "pin"]
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 403, description: "Invalid or expired token" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @HttpCode(200)
   @Post("verify-email")
-  async verifyEmail(@Body("token") token: string) {
+  async verifyEmail(@Body() body: VerifyUserEmailDto) {
+    return this.authService.verifyEmail(body);
   }
 
+  @ApiOperation({ summary: "Resend email verification" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        email: { type: "string", example: "email" },
+        action: { type: "string", example: "action" }
+      },
+      required: ["email", "action"]
+    }
+  })
+  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 400, description: "Email and action are required" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @ApiResponse({ status: 400, description: "Invalid action" })
+  @HttpCode(200)
   @Post("resend-email")
-  async resendEmail(@Body("email") email: string) {
+  async resendEmail(@Body("email") email: string, @Body("action") action: string) {
+    return this.authService.resendEmail(email, action);
   }
 }

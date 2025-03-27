@@ -12,6 +12,11 @@ const schema = z.object({
   JWT_REFRESH_SECRET: z.string({ required_error: "REFRESH_SECRET is required" }),
 
   CACHE_URL: z.string({ required_error: "CACHE_URL is required" }),
+
+  SMTP_HOST: z.string({ required_error: "SMTP_HOST is required" }),
+  SMTP_EMAIL: z.string({ required_error: "SMTP_EMAIL is required" })
+    .email({ message: "SMTP_EMAIL must be a valid email" }),
+  SMTP_PASSWORD: z.string({ required_error: "SMTP_PASSWORD is required" }),
 })
 
 export type Env = z.infer<typeof schema>;
