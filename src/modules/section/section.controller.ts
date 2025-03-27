@@ -37,7 +37,7 @@ export class SectionController {
       }
     }
     const sections = await this.sectionService.getAll(user);
-    await this.redis.set(key, JSON.stringify(sections), "EX", 60 * 60);
+    await this.redis.set(key, JSON.stringify(sections), "EX", 60 * 10);
     return sections;
   }
 
@@ -62,7 +62,7 @@ export class SectionController {
     }
 
     const section = await this.sectionService.getById(user, id);
-    await this.redis.set(key, JSON.stringify(section), "EX", 60 * 60);
+    await this.redis.set(key, JSON.stringify(section), "EX", 60 * 10);
     return section;
   }
 

@@ -37,7 +37,7 @@ export class VehicleController {
       }
     }
     const vehicles = await this.vehicleService.getAll(user, plate, page, limit);
-    await this.redis.set(key, JSON.stringify(vehicles), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(vehicles), "EX", 60 * 10);
     return vehicles;
   }
 
@@ -59,7 +59,7 @@ export class VehicleController {
       }
     }
     const vehicle = await this.vehicleService.getById(user, id);
-    await this.redis.set(key, JSON.stringify(vehicle), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(vehicle), "EX", 60 * 10);
     return vehicle;
   }
 

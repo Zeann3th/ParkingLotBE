@@ -37,7 +37,7 @@ export class NotificationController {
       }
     }
     const notifications = await this.notificationService.getAll(user, page, limit);
-    await this.redis.set(key, JSON.stringify(notifications), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(notifications), "EX", 60 * 10);
     return notifications;
   }
 
@@ -60,7 +60,7 @@ export class NotificationController {
       }
     }
     const notification = await this.notificationService.getById(user, id);
-    await this.redis.set(key, JSON.stringify(notification), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(notification), "EX", 60 * 10);
     return notification;
   }
 

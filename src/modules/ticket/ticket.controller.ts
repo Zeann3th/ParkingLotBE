@@ -39,7 +39,7 @@ export class TicketController {
       }
     }
     const tickets = await this.ticketService.getAll(user, page, limit);
-    await this.redis.set(key, JSON.stringify(tickets), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(tickets), "EX", 60 * 10);
     return tickets;
   }
 
@@ -61,7 +61,7 @@ export class TicketController {
       }
     }
     const ticket = await this.ticketService.getById(user, id);
-    await this.redis.set(key, JSON.stringify(ticket), "EX", 60 * 15);
+    await this.redis.set(key, JSON.stringify(ticket), "EX", 60 * 10);
     return ticket;
   }
 
@@ -116,7 +116,7 @@ export class TicketController {
       }
     }
     const pricing = await this.ticketService.getPricing();
-    await this.redis.set("tickets:pricing", JSON.stringify(pricing), "EX", 60 * 15);
+    await this.redis.set("tickets:pricing", JSON.stringify(pricing), "EX", 60 * 10);
     return pricing;
   }
 

@@ -37,7 +37,7 @@ export class TransactionController {
       }
     }
     const transactionList = await this.transactionService.getAll(user, page, limit);
-    await this.redis.set(key, JSON.stringify(transactionList), "EX", 60 * 60);
+    await this.redis.set(key, JSON.stringify(transactionList), "EX", 60 * 10);
     return transactionList;
   }
 
@@ -60,7 +60,7 @@ export class TransactionController {
       }
     }
     const transaction = await this.transactionService.getById(user, id);
-    await this.redis.set(key, JSON.stringify(transaction), "EX", 60 * 60);
+    await this.redis.set(key, JSON.stringify(transaction), "EX", 60 * 10);
     return transaction;
   }
 

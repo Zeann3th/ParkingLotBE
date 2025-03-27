@@ -9,6 +9,7 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags("Authentication")
 @Controller('auth')
@@ -123,6 +124,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "Success" })
   @ApiResponse({ status: 400, description: "Email is required" })
   @ApiResponse({ status: 404, description: "User not found" })
+  @Throttle({ default: { limit: 3, ttl: 60 } })
   @HttpCode(200)
   @Post('forgot-password')
   async forgotPassword(@Body("email") email: string) {
@@ -185,6 +187,7 @@ export class AuthController {
   @ApiResponse({ status: 400, description: "Email and action are required" })
   @ApiResponse({ status: 404, description: "User not found" })
   @ApiResponse({ status: 400, description: "Invalid action" })
+  @Throttle({ default: { limit: 3, ttl: 60 } })
   @HttpCode(200)
   @Post("resend-email")
   async resendEmail(@Body("email") email: string, @Body("action") action: string) {
