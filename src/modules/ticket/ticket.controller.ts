@@ -75,7 +75,7 @@ export class TicketController {
   @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Get ticket pricing" })
-  @Roles("ADMIN", "SECURITY", "USER")
+  @Roles("ADMIN", "SECURITY")
   @Get("pricing")
   async getPricing() {
     return await this.ticketService.getPricing();
@@ -133,7 +133,7 @@ export class TicketController {
     }
   })
   @ApiBearerAuth()
-  @Roles("USER")
+  @Roles("ADMIN", "USER")
   @Patch(":id/reserve")
   async reserve(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body() body: ReserveTicketDto) {
     return await this.ticketService.reserve(user, id, body);
@@ -151,7 +151,7 @@ export class TicketController {
     }
   })
   @ApiBearerAuth()
-  @Roles("USER")
+  @Roles("ADMIN", "USER")
   @Patch(":id/cancel")
   async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("sectionId", ParseIntPipe) sectionId: number) {
     return await this.ticketService.cancel(user, id, sectionId);

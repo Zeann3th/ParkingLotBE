@@ -11,6 +11,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
 import { ResidenceModule } from './residence/residence.module';
 import { VehicleModule } from './vehicle/vehicle.module';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
   imports: [
@@ -26,9 +28,10 @@ import { VehicleModule } from './vehicle/vehicle.module';
     ParkingModule,
     TicketModule,
     NotificationModule,
-    CronModule, // no transactions yet
+    CronModule,
     ResidenceModule, //TODO: Get residences' users and vehicles 
     VehicleModule,
+    TransactionModule,
   ],
 })
 export class AppModule {

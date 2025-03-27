@@ -11,31 +11,51 @@ export class NotificationService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface) {
-    return await this.db.select().from(notifications)
-      .where(eq(notifications.to, user.sub));
+    if (user.role === "ADMIN") {
+      return await this.db.select().from(notifications)
+        .leftJoin(users, eq(users.role, "ADMIN"));
+    } else {
+      return await this.db.select().from(notifications)
+        .where(eq(notifications.to, user.sub));
+    }
   }
 
   async getById(user: UserInterface, id: number) {
     const [notification] = await this.db.select().from(notifications)
-      .where(and(
-        eq(notifications.id, id),
-        eq(notifications.to, user.sub)
-      ));
+      .where(eq(notifications.id, id));
+
+    if (user.role !== "ADMIN" && notification.to !== user.sub) {
+      throw new HttpException("Not authorized to access this notification", 403);
+    }
+
     return notification;
   }
 
   async create(user: UserInterface, { to, message }: CreateNotificationDto) {
+    let recipient: number | undefined = to;
+
+    if (!recipient) {
+      const [admin] = await this.db.select().from(users)
+        .where(eq(users.role, "ADMIN"));
+
+      if (!admin) {
+        throw new HttpException("Admin not found", 404);
+      }
+
+      recipient = admin.id;
+    }
+
     await this.db.insert(notifications)
       .values({
         from: user.sub,
-        to,
+        to: recipient,
         message
       })
       .returning();
     return { message: "Notification created successfully" };
   }
 
-  async read(user: UserInterface, id: number, status: string) {
+  async update(user: UserInterface, id: number, status: string) {
     if (status !== "READ" && status !== "DELETED") {
       throw new HttpException("Invalid notification's status", 400)
     }

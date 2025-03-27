@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, like } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
@@ -10,10 +10,18 @@ import { CreateVehicleDto } from './dto/create-vehicle.dto';
 export class VehicleService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface) {
-    const vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
-      .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
-      .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+  async getAll(user: UserInterface, plate: string | undefined) {
+    let vehicleList: any;
+    if (plate) {
+      vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+        .where(like(vehicles.plate, `${plate}%`))
+        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+    } else {
+      vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
+    }
 
     return vehicleList.map(({ vehicle, residence }) => ({ ...vehicle, residence }));
   }
