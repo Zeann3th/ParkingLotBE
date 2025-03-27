@@ -13,8 +13,11 @@ export class NotificationService {
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
     if (user.role === "ADMIN") {
       return await this.db.select().from(notifications)
-        .leftJoin(users, eq(users.role, "ADMIN"))
-        .where(ne(notifications.status, "DELETED"))
+        .leftJoin(users, eq(users.id, notifications.to))
+        .where(and(
+          ne(notifications.status, "DELETED"),
+          eq(users.role, "ADMIN")
+        ))
         .limit(limit).offset((page - 1) * limit);
     } else {
       return await this.db.select().from(notifications)

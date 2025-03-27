@@ -141,14 +141,18 @@ export class TicketService {
   }
 
   async update(id: number, { type, status }: UpdateTicketDto) {
+    if (!type && !status) {
+      throw new HttpException("Missing required fields in payload", 400);
+    }
+
     const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
     if (!ticket) {
       throw new HttpException("Ticket not found", 404);
     }
 
     const [updatedTicket] = await this.db.update(tickets).set({
-      ...(type && { type }),
-      ...(status && { status }),
+      type: type ?? ticket.type,
+      status: status ?? ticket.status
     }).where(eq(tickets.id, id)).returning();
     return updatedTicket;
   }

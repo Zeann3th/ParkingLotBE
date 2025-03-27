@@ -33,7 +33,7 @@ export class AuthController {
   @ApiResponse({ status: 500, description: "Failed to register user" })
   @Post('register')
   async register(@Body() body: RegisterUserDto) {
-    return this.authService.register(body);
+    return await this.authService.register(body);
   }
 
   @ApiOperation({ summary: "Login a user" })
@@ -73,7 +73,7 @@ export class AuthController {
   @Get('refresh')
   async refresh(@Req() request: Request) {
     const refreshToken = request.cookies["refresh_token"]
-    return this.authService.refresh(refreshToken);
+    return await this.authService.refresh(refreshToken);
   }
 
   @ApiOperation({ summary: "Logout a user" })
@@ -107,7 +107,7 @@ export class AuthController {
   @Roles("ADMIN")
   @Patch(":id")
   async update(@Param("id") id: number, @Body() body: UpdateUserDto) {
-    return this.authService.update(id, body)
+    return await this.authService.update(id, body)
   }
 
   @ApiOperation({ summary: "Send forgot password request and mail" })
@@ -126,7 +126,7 @@ export class AuthController {
   @HttpCode(200)
   @Post('forgot-password')
   async forgotPassword(@Body("email") email: string) {
-    return this.authService.forgotPassword(email);
+    return await this.authService.forgotPassword(email);
   }
 
   @ApiOperation({ summary: "Reset user password" })
@@ -147,7 +147,7 @@ export class AuthController {
   @HttpCode(200)
   @Post('reset-password')
   async resetPassword(@Body() body: ResetUserPasswordDto) {
-    return this.authService.resetPassword(body);
+    return await this.authService.resetPassword(body);
   }
 
   @ApiOperation({ summary: "Verify user email" })
@@ -167,7 +167,7 @@ export class AuthController {
   @HttpCode(200)
   @Post("verify-email")
   async verifyEmail(@Body() body: VerifyUserEmailDto) {
-    return this.authService.verifyEmail(body);
+    return await this.authService.verifyEmail(body);
   }
 
   @ApiOperation({ summary: "Resend email verification" })
@@ -188,6 +188,6 @@ export class AuthController {
   @HttpCode(200)
   @Post("resend-email")
   async resendEmail(@Body("email") email: string, @Body("action") action: string) {
-    return this.authService.resendEmail(email, action);
+    return await this.authService.resendEmail(email, action);
   }
 }

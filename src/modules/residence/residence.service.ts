@@ -46,8 +46,8 @@ export class ResidenceService {
     }
 
     await this.db.update(residences).set({
-      ...(building ? { building } : {}),
-      ...(room ? { room } : {})
+      building: building ?? residence.building,
+      room: room ?? residence.room
     })
       .where(eq(residences.id, id))
   }

@@ -6,3 +6,5 @@ export type TicketType = "MONTHLY" | "DAILY" | "RESERVED";
 
 export type TicketStatus = "AVAILABLE" | "INUSE" | "LOST" | "CANCELED";
 
+export type TransactionStatus = "PENDING" | "PAID";
+

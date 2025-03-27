@@ -71,7 +71,7 @@ export class VehicleController {
   @Roles("ADMIN", "SECURITY")
   @Post()
   async create(@Body() body: CreateVehicleDto) {
-    return this.vehicleService.create(body);
+    return await this.vehicleService.create(body);
   }
 
   @ApiOperation({ summary: "Update vehicle" })
@@ -79,13 +79,13 @@ export class VehicleController {
   @Roles("ADMIN")
   @Patch(":id")
   async update(@Param("id", ParseIntPipe) id: number, @Body("plate") plate: string) {
-    return this.vehicleService.update(id, plate);
+    return await this.vehicleService.update(id, plate);
   }
 
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Delete(":id")
   async delete(@Param("id", ParseIntPipe) id: number) {
-    return this.vehicleService.delete(id);
+    return await this.vehicleService.delete(id);
   }
 }

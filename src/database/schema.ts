@@ -106,12 +106,13 @@ export const notifications = sqliteTable("notifications", {
 ])
 
 export const transactions = sqliteTable("transactions", {
+  id: integer().primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   amount: real().notNull(),
   month: integer().notNull(),
   year: integer().notNull(),
   status: text("status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
 }, (table) => [
-  primaryKey({ columns: [table.userId, table.month, table.year], name: "pk_transactions" }),
+  uniqueIndex("unique_transaction_idx").on(table.userId, table.month, table.year)
 ])
 
