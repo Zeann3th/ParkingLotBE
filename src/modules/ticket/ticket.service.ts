@@ -14,19 +14,41 @@ export class TicketService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface) {
-    if (user.role === "ADMIN") {
-      return await this.db.select().from(tickets);
-    } else {
-      const ticketList = await this.db.select().from(tickets)
-        .innerJoin(userTickets, eq(userTickets.ticketId, tickets.id))
-        .where(eq(userTickets.userId, user.sub))
-      return ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
+    const ticketList = await this.db.select().from(tickets)
+      .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id));
+
+    const res = ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
+
+    if (user.role === "ADMIN" || user.role === "SECURITY") {
+      return res;
     }
+
+    return res.filter(({ userId }) => userId === user.sub);
   }
 
-  async getById(id: number) {
-    const [ticket] = await this.db.select().from(tickets).where(eq(tickets.id, id));
-    return ticket;
+  async getById(user: UserInterface, id: number) {
+    if (user.role !== "ADMIN" && user.role !== "SECURITY") {
+      const [userTicket] = await this.db.select()
+        .from(userTickets)
+        .where(and(
+          eq(userTickets.ticketId, id),
+          eq(userTickets.userId, user.sub)
+        ));
+
+      if (!userTicket) {
+        throw new HttpException("Not authorized to access this ticket", 403);
+      }
+    }
+
+    const [ticket] = await this.db.select().from(tickets)
+      .where(eq(tickets.id, id))
+      .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id));
+
+    if (!ticket) {
+      throw new HttpException("Ticket not found", 404);
+    }
+
+    return { ...ticket.tickets, ...ticket.user_tickets };
   }
 
   async create({ type, userId, vehicleId, sectionId, slot }: CreateTicketDto) {
@@ -126,6 +148,108 @@ export class TicketService {
     return updatedTicket;
   }
 
+  async reserve(user: UserInterface, id: number, { sectionId, slot }: ReserveTicketDto) {
+    await this.db.transaction(async (tx) => {
+      const [{ ticket, userTicket, vehicle }] = await tx
+        .select({ ticket: tickets, userTicket: userTickets, vehicle: vehicles })
+        .from(userTickets)
+        .where(and(
+          eq(userTickets.ticketId, id),
+          eq(userTickets.userId, user.sub)
+        ))
+        .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+        .leftJoin(vehicles, eq(vehicles.id, userTickets.vehicleId));
+
+      if (!ticket) {
+        throw new HttpException("Ticket not found or not accessible", 404);
+      }
+
+      if (ticket.type !== "RESERVED") {
+        throw new HttpException("Ticket is not a reserved ticket", 400);
+      }
+
+      if (!vehicle) {
+        throw new HttpException("Vehicle not found", 400);
+      }
+
+      if (vehicle.type !== "CAR") {
+        throw new HttpException("Vehicle must be a car to reserve a slot", 400);
+      }
+
+      const [section] = await tx.select().from(sections)
+        .where(eq(sections.id, sectionId));
+
+      if (!section) {
+        throw new HttpException("Section not found", 404);
+      }
+
+      const [existingSlot] = await tx.select().from(vehicleReservations)
+        .where(and(
+          eq(vehicleReservations.sectionId, sectionId),
+          eq(vehicleReservations.slot, slot)
+        ))
+
+      if (existingSlot) {
+        throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
+      }
+
+      await this.db.insert(vehicleReservations).values({
+        ticketId: ticket.id,
+        sectionId,
+        slot
+      });
+    });
+
+    return { message: "Slot reserved successfully" };
+  }
+
+  async cancel(user: UserInterface, id: number, sectionId: number) {
+    await this.db.transaction(async (tx) => {
+      const [{ ticket, userTicket, vehicle }] = await tx
+        .select({ ticket: tickets, userTicket: userTickets, vehicle: vehicles })
+        .from(userTickets)
+        .where(and(
+          eq(userTickets.ticketId, id),
+          eq(userTickets.userId, user.sub)
+        ))
+        .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+        .leftJoin(vehicles, eq(vehicles.id, userTickets.vehicleId));
+
+      if (!ticket) {
+        throw new HttpException("Ticket not found or not accessible", 404);
+      }
+
+      if (ticket.status === "CANCELED") {
+        throw new HttpException("Ticket already canceled", 400);
+      }
+
+      if (!vehicle) {
+        throw new HttpException("Vehicle not found", 400);
+      }
+
+      const [section] = await tx.select().from(sections)
+        .where(eq(sections.id, sectionId));
+
+      if (!section) {
+        throw new HttpException("Section not found", 404);
+      }
+
+      await tx.update(tickets).set({ status: "CANCELED" })
+        .where(eq(tickets.id, id));
+
+      if (ticket.type !== "RESERVED") {
+        return { message: "User's subscription canceled" };
+      }
+
+      await tx.delete(vehicleReservations).where(and(
+        eq(vehicleReservations.ticketId, ticket.id),
+        eq(vehicleReservations.sectionId, sectionId)
+      ))
+    });
+
+    return { message: "User's subscription canceled, slot unreserved" };
+  }
+
   async getPricing() {
     return await this.db.select().from(ticketPrices);
   }
@@ -141,6 +265,6 @@ export class TicketService {
 
   async delete(id: number) {
     await this.db.delete(tickets).where(eq(tickets.id, id));
-    return {}
+    return;
   }
 }

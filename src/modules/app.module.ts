@@ -1,3 +1,4 @@
+import env from 'src/common';
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
@@ -9,22 +10,26 @@ import { NotificationModule } from './notification/notification.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
 import { ResidenceModule } from './residence/residence.module';
+import { VehicleModule } from './vehicle/vehicle.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    //RedisModule.forRoot({
+    //  type: "single",
+    //  url: env.CACHE_URL
+    //}),
     HealthcheckModule,
     AuthModule,
     SectionModule,
     ParkingModule,
     TicketModule,
     NotificationModule,
-    CronModule,
-    ResidenceModule,
+    CronModule, // no transactions yet
+    ResidenceModule, //TODO: Get residences' users and vehicles 
+    VehicleModule,
   ],
 })
 export class AppModule {
 }
-
-//TODO: Vehicle module

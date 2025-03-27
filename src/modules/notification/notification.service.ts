@@ -68,6 +68,6 @@ export class NotificationService {
 
     await this.db.delete(notifications)
       .where(eq(notifications.id, id));
-    return {};
+    return;
   }
 }
