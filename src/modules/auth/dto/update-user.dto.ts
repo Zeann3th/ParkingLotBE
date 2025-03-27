@@ -1,11 +1,12 @@
-import { IsArray, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { UserRole } from "src/database/types";
 
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  password?: string;
+  @IsEmail()
+  email?: string;
 
   @IsOptional()
   @IsIn(["ADMIN", "SECURITY", "USER"])

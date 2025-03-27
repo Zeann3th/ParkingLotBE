@@ -41,7 +41,7 @@ export class NotificationController {
         to: { type: "integer" },
         message: { type: "string" }
       },
-      required: ["to", "message"]
+      required: ["message"]
     }
   })
   @ApiBearerAuth()
