@@ -28,8 +28,8 @@ export class TicketController {
   async getAll(
     @Headers("Cache-Control") cacheOption: string,
     @User() user: UserInterface,
-    @Query("page") page: number,
-    @Query("limit") limit: number
+    @Query("page", ParseIntPipe) page: number,
+    @Query("limit", ParseIntPipe) limit: number
   ) {
     const key = user.role !== "USER" ? `tickets:${page}:${limit}` : `tickets:${user.sub}:${page}:${limit}`;
     if (cacheOption && cacheOption !== "no-cache") {

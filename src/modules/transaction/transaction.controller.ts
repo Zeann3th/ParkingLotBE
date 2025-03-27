@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -26,10 +26,10 @@ export class TransactionController {
   async getAll(
     @Headers("Cache-Control") cacheOption: string,
     @User() user: UserInterface,
-    @Query("page") page: number,
-    @Query("limit") limit: number
+    @Query("page", ParseIntPipe) page: number,
+    @Query("limit", ParseIntPipe) limit: number
   ) {
-    const key = user.role === "ADMIN" ? "transactions:${page}:${limit}" : `transactions:${user.sub}:${page}:${limit}`;
+    const key = user.role === "ADMIN" ? `transactions:${page}:${limit}` : `transactions:${user.sub}:${page}:${limit}`;
     if (cacheOption && cacheOption !== "no-cache") {
       const cachedTransactions = await this.redis.get(key);
       if (cachedTransactions) {
@@ -50,7 +50,7 @@ export class TransactionController {
   async getById(
     @Headers("Cache-Control") cacheOption: string,
     @User() user: UserInterface,
-    @Param("id") id: number
+    @Param("id", ParseIntPipe) id: number
   ) {
     const key = user.role === "ADMIN" ? `transactions:${id}` : `transactions:${user.sub}:${id}`;
     if (cacheOption && cacheOption !== "no-cache") {
@@ -105,7 +105,7 @@ export class TransactionController {
   @ApiResponse({ status: 404, description: "Transaction not found" })
   @Roles("ADMIN")
   @Patch(":id")
-  async update(@Param("id") id: number, @Body() body: UpdateTransactionDto) {
+  async update(@Param("id", ParseIntPipe) id: number, @Body() body: UpdateTransactionDto) {
     return await this.transactionService.update(id, body);
   }
 
@@ -117,7 +117,7 @@ export class TransactionController {
   @HttpCode(204)
   @Roles("ADMIN")
   @Delete(":id")
-  async delete(@Param("id") id: number) {
+  async delete(@Param("id", ParseIntPipe) id: number) {
     await this.transactionService.delete(id);
     return;
   }
