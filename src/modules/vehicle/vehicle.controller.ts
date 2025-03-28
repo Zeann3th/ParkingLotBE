@@ -4,7 +4,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { Roles } from 'src/decorators/role.decorator';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 import { InjectRedis } from '@nestjs-modules/ioredis';
@@ -19,6 +19,14 @@ export class VehicleController {
   ) { }
 
   @ApiOperation({ summary: "Get all vehicles" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
+  @ApiQuery({ name: "plate", required: false, type: String })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Returns all vehicles with their residence info (if exist)" })
   @Roles("ADMIN", "SECURITY")
@@ -42,6 +50,11 @@ export class VehicleController {
   }
 
   @ApiOperation({ summary: "Get vehicle by id" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Returns vehicle witj their residence info (if exist)" })
   @ApiResponse({ status: 403, description: "Not authorized to access this vehicle" })
@@ -65,6 +78,16 @@ export class VehicleController {
 
   @ApiOperation({ summary: "Create/Register a vehicle" })
   @ApiBearerAuth()
+  @ApiBody({
+    type: "object",
+    schema: {
+      properties: {
+        plate: { type: "string", example: "ABC1234" },
+        type: { type: "string", example: "CAR" },
+      },
+      required: ["plate"],
+    }
+  })
   @ApiResponse({ status: 200, description: "Vehicle created successfully" })
   @ApiResponse({ status: 409, description: "Vehicle's plate already exists" })
   @ApiResponse({ status: 500, description: "Internal server error" })

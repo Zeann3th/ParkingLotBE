@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, Post, Param, Delete, UseGuards, HttpCode, Query, ParseIntPipe, Headers } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { SectionService } from './section.service';
 import { CreateSectionDto } from './dto/create-section.dto';
@@ -20,6 +20,11 @@ export class SectionController {
   ) { }
 
   @ApiOperation({ summary: "Get all sections" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiResponse({ status: 200, description: "Return all sections" })
   @ApiResponse({ status: 403, description: "You are not allowed to view any sections" })
   @ApiBearerAuth()
@@ -42,6 +47,11 @@ export class SectionController {
   }
 
   @ApiOperation({ summary: "Get section by id" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiParam({ name: "id", description: "Section id" })
   @ApiResponse({ status: 200, description: "Return section" })
   @ApiResponse({ status: 403, description: "You are not allowed to view this section" })

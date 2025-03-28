@@ -34,10 +34,10 @@ export class MailService {
     try {
       const tmp = this.redis.set(`verify:${addr}`, pin, "EX", 300)
       const mail = this.transporter.sendMail({
-        from: `"LeetBase" <${process.env.SMTP_SENDER}>`,
+        from: `"The Parking Hub" <${process.env.SMTP_SENDER}>`,
         to: `${addr}`,
-        subject: "Welcome to Parking Lot! Confirm your email",
-        html: ` <!DOCTYPE html><html><head>${this.css}</head><body><div class="container"><h1>Welcome to Parking Lot!</h1><p>Thank you for signing up. Please confirm your email using the verification code below:</p><div class="pin">${pin}</div><p>If you didn’t sign up for this, please ignore this email.</p></div></body></html>`,
+        subject: "Welcome to Parking Hub! Confirm your email",
+        html: ` <!DOCTYPE html><html><head>${this.css}</head><body><div class="container"><h1>Welcome to Parking Hub!</h1><p>Thank you for signing up. Please confirm your email using the verification code below:</p><div class="pin">${pin}</div><p>If you didn’t sign up for this, please ignore this email.</p></div></body></html>`,
       });
 
       const [_, sentMail] = await Promise.all([tmp, mail]);
@@ -52,10 +52,10 @@ export class MailService {
     try {
       const tmp = this.redis.set(`reset:${addr}`, pin, "EX", 300);
       const mail = this.transporter.sendMail({
-        from: `"LeetBase" <${process.env.SMTP_SENDER}>`,
+        from: `"The Parking Hub" <${process.env.SMTP_SENDER}>`,
         to: `${addr}`,
         subject: "Parking Lot Password Reset Request",
-        html: `<!DOCTYPE html><html><head>${this.css}</head><body><div class="container"><h1>Reset Your Parking Lot Password</h1><p>We received a request to reset your password. Use the verification code below to proceed:</p><div class="pin">${pin}</div><p>If you didn’t request a password reset, please ignore this email.</p></div></body></html>`
+        html: `<!DOCTYPE html><html><head>${this.css}</head><body><div class="container"><h1>Reset Your Parking Hub Password</h1><p>We received a request to reset your password. Use the verification code below to proceed:</p><div class="pin">${pin}</div><p>If you didn’t request a password reset, please ignore this email.</p></div></body></html>`
       });
 
       const [_, sentMail] = await Promise.all([tmp, mail]);

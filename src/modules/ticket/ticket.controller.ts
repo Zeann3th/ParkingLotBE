@@ -4,7 +4,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
 import { User } from 'src/decorators/user.decorator';
@@ -21,6 +21,13 @@ export class TicketController {
   ) { }
 
   @ApiOperation({ summary: "Get all tickets" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all tickets" })
   @Roles("ADMIN", "SECURITY", "USER")
@@ -44,6 +51,11 @@ export class TicketController {
   }
 
   @ApiOperation({ summary: "Get ticket by id" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return ticket" })
@@ -79,6 +91,7 @@ export class TicketController {
       required: ["type"]
     }
   })
+  @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY")
   @Post()
   async create(@Body() body: CreateTicketDto) {
@@ -104,6 +117,11 @@ export class TicketController {
   }
 
   @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Get ticket pricing" })
   @Roles("ADMIN", "SECURITY")

@@ -7,7 +7,7 @@ import Redis from 'ioredis';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
 
 @Controller('transactions')
@@ -19,6 +19,13 @@ export class TransactionController {
   ) { }
 
   @ApiOperation({ summary: "Get all transactions" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return all transactions" })
   @Roles("ADMIN", "USER")
@@ -42,6 +49,11 @@ export class TransactionController {
   }
 
   @ApiOperation({ summary: "Get transaction by id" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiParam({ name: "id", description: "Transaction id" })
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Return transaction" })
