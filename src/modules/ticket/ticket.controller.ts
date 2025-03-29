@@ -50,6 +50,28 @@ export class TicketController {
     return tickets;
   }
 
+  @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, description: "Get ticket pricing" })
+  @Roles("ADMIN", "SECURITY")
+  @Get("pricing")
+  async getPricing(@Headers("Cache-Control") cacheOption: string) {
+    if (cacheOption && cacheOption !== "no-cache") {
+      const cachedPricing = await this.redis.get("tickets:pricing");
+      if (cachedPricing) {
+        return JSON.parse(cachedPricing);
+      }
+    }
+    const pricing = await this.ticketService.getPricing();
+    await this.redis.set("tickets:pricing", JSON.stringify(pricing), "EX", 60 * 10);
+    return pricing;
+  }
+
   @ApiOperation({ summary: "Get ticket by id" })
   @ApiHeader({
     name: "Cache-Control",
@@ -114,28 +136,6 @@ export class TicketController {
   @Post("dailies")
   async createDailyTickets(@Body("amount") amount: number) {
     return await this.ticketService.createDailyTickets(amount);
-  }
-
-  @ApiOperation({ summary: "Get ticket pricing", description: "Get ticket pricing" })
-  @ApiHeader({
-    name: "Cache-Control",
-    required: false,
-    description: "no-cache to ignore cache"
-  })
-  @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: "Get ticket pricing" })
-  @Roles("ADMIN", "SECURITY")
-  @Get("pricing")
-  async getPricing(@Headers("Cache-Control") cacheOption: string) {
-    if (cacheOption && cacheOption !== "no-cache") {
-      const cachedPricing = await this.redis.get("tickets:pricing");
-      if (cachedPricing) {
-        return JSON.parse(cachedPricing);
-      }
-    }
-    const pricing = await this.ticketService.getPricing();
-    await this.redis.set("tickets:pricing", JSON.stringify(pricing), "EX", 60 * 10);
-    return pricing;
   }
 
   @ApiOperation({ summary: "Update ticket pricing" })

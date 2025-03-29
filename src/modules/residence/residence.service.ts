@@ -5,18 +5,48 @@ import { residences, residenceVehicles, userResidences, users, vehicles } from '
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { UpdateResidenceDto } from './dto/update-residence.dto';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class ResidenceService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll() {
-    return await this.db.select().from(residences)
+  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+    if (user.role === "ADMIN" || user.role === "SECURITY") {
+      return await this.db.select().from(residences)
+        .limit(limit).offset((page - 1) * limit);
+    } else {
+      const res = await this.db.select({ residence: residences }).from(residences)
+        .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
+        .where(eq(userResidences.userId, user.sub))
+        .limit(limit).offset((page - 1) * limit);
+      return res.map(({ residence }) => residence);
+    }
   }
 
-  async getById(id: number) {
-    return await this.db.select().from(residences)
-      .where(eq(residences.id, id))
+  async getById(user: UserInterface, id: number) {
+    const [residence] = await this.db.select().from(residences)
+      .where(eq(residences.id, id));
+
+    if (!residence) {
+      throw new HttpException("Residence not found", 404);
+    }
+
+    const vehicleList = (await this.db.select({ vehicle: vehicles }).from(residenceVehicles)
+      .where(eq(residenceVehicles.residenceId, id))
+      .leftJoin(vehicles, eq(vehicles.id, residenceVehicles.vehicleId)))
+      .map(({ vehicle }) => vehicle);
+
+    const residentList = (await this.db.select({ resident: users }).from(userResidences)
+      .where(eq(userResidences.residenceId, id))
+      .leftJoin(users, eq(users.id, userResidences.userId)))
+      .map(({ resident }) => resident);
+
+    if (user.role !== "ADMIN" && user.role !== "SECURITY" && !residentList.some(resident => resident!.id === user.sub)) {
+      throw new HttpException("Not authorized to access this residence", 403);
+    }
+
+    return { ...residence, vehicles: vehicleList, users: residentList };
   }
 
   async create({ building, room }: CreateResidenceDto) {
