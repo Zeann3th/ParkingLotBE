@@ -56,14 +56,26 @@ export class TicketService {
     return { ...ticket.tickets, ...ticket.user_tickets };
   }
 
-  async create({ type, userId, vehicleId, sectionId, slot }: CreateTicketDto) {
+  async create(dto: CreateTicketDto) {
     return await this.db.transaction(async (tx) => {
+      const {
+        type,
+        userId = null,
+        vehicleId = null,
+        sectionId = null,
+        slot = null
+      } = dto;
+
       const [{ ticketId }] = await tx.insert(tickets)
         .values({ type })
         .returning({ ticketId: tickets.id });
 
       if (type === "DAILY") {
         return { message: "Daily ticket created successfully", ticketId };
+      }
+
+      if (!userId || !vehicleId) {
+        throw new HttpException("User ID and Vehicle ID are required for non-daily tickets", 400);
       }
 
       const [user] = await tx.select()
@@ -73,24 +85,12 @@ export class TicketService {
         throw new HttpException("User not found", 404);
       }
 
-      const [section] = await tx.select()
-        .from(sections)
-        .where(eq(sections.id, sectionId))
-      if (!section) {
-        throw new HttpException("Section not found", 404);
-      }
-
-      if (slot < 1 || slot > section.capacity) {
-        throw new HttpException("Invalid slot number", 400);
-      }
-
       const [vehicle] = await tx.select()
         .from(vehicles)
         .where(eq(vehicles.id, vehicleId))
       if (!vehicle) {
         throw new HttpException("Vehicle not found", 404);
       }
-
 
       const [userTicket] = await tx.insert(userTickets)
         .values({
@@ -104,26 +104,45 @@ export class TicketService {
         return { message: "Monthly ticket created successfully", ticketId };
       }
 
-      if (vehicle.type !== "CAR") {
-        throw new HttpException("Vehicle must be a car to reserve a slot", 400);
+      if (type === "RESERVED") {
+        if (!sectionId || !slot) {
+          throw new HttpException("Section ID and Slot are required for reserved tickets", 400);
+        }
+
+        if (vehicle.type !== "CAR") {
+          throw new HttpException("Vehicle must be a car to reserve a slot", 400);
+        }
+
+        const [section] = await tx.select()
+          .from(sections)
+          .where(eq(sections.id, sectionId))
+        if (!section) {
+          throw new HttpException("Section not found", 404);
+        }
+
+        if (slot < 1 || slot > section.capacity) {
+          throw new HttpException("Invalid slot number", 400);
+        }
+
+        const [existingSlot] = await tx.select()
+          .from(vehicleReservations)
+          .where(and(
+            eq(vehicleReservations.sectionId, sectionId),
+            eq(vehicleReservations.slot, slot)
+          ));
+
+        if (existingSlot) {
+          throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
+        }
+
+        await tx.insert(vehicleReservations)
+          .values({
+            ticketId,
+            sectionId,
+            slot,
+          });
       }
 
-      const [existingSlot] = await tx.select()
-        .from(vehicleReservations)
-        .where(and(
-          eq(vehicleReservations.sectionId, sectionId),
-          eq(vehicleReservations.slot, slot)
-        ));
-      if (existingSlot) {
-        throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
-      }
-
-      await tx.insert(vehicleReservations)
-        .values({
-          ticketId,
-          sectionId,
-          slot,
-        });
       return { message: "Reserved ticket created successfully", ticketId };
     });
   }

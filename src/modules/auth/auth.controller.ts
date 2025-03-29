@@ -24,9 +24,10 @@ export class AuthController {
       properties: {
         username: { type: "string", example: "username" },
         name: { type: "string", example: "name" },
-        password: { type: "string", example: "password" }
+        password: { type: "string", example: "password" },
+        email: { type: "string", example: "email" },
       },
-      required: ["username", "password"]
+      required: ["username", "password", "email"]
     }
   })
   @ApiResponse({ status: 201, description: "User registered successfully" })
@@ -45,7 +46,7 @@ export class AuthController {
         username: { type: "string", example: "username" },
         password: { type: "string", example: "password" }
       },
-      required: ["username", "password"]
+      required: ["password"]
     }
   })
   @ApiResponse({ status: 200, description: "Success" })
@@ -54,14 +55,14 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   async login(@Body() body: LoginUserDto, @Res() response: Response) {
-    const { accessToken, refreshToken, user } = await this.authService.login(body);
+    const { accessToken, refreshToken } = await this.authService.login(body);
     response.cookie("refresh_token", refreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/"
     });
-    return response.send({ access_token: accessToken, user });
+    return response.send({ access_token: accessToken });
   }
 
   @ApiOperation({ summary: "Refresh access token" })

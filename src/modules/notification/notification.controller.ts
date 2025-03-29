@@ -6,7 +6,7 @@ import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { CreateNotificationDto } from './dto/create-notification.dto';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import Redis from 'ioredis';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 
@@ -19,6 +19,13 @@ export class NotificationController {
   ) { }
 
   @ApiOperation({ summary: "Get all notifications" })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiResponse({ status: 200, description: "Return all notifications" })
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
@@ -43,6 +50,11 @@ export class NotificationController {
 
   @ApiOperation({ summary: "Get notification by id" })
   @ApiParam({ name: "id", required: true })
+  @ApiHeader({
+    name: "Cache-Control",
+    required: false,
+    description: "no-cache to ignore cache"
+  })
   @ApiResponse({ status: 200, description: "Return notification by id" })
   @ApiBearerAuth()
   @Roles("ADMIN", "SECURITY", "USER")
