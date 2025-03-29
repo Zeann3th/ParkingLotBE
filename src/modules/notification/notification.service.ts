@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { notifications, users } from 'src/database/schema';
@@ -11,22 +11,34 @@ export class NotificationService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+    let countResult: number = 0;
+    let data: any[] = [];
     if (user.role === "ADMIN") {
-      return await this.db.select().from(notifications)
-        .leftJoin(users, eq(users.id, notifications.to))
-        .where(and(
-          ne(notifications.status, "DELETED"),
-          eq(users.role, "ADMIN")
-        ))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(notifications)
+          .leftJoin(users, eq(users.id, notifications.to))
+          .where(eq(users.role, "ADMIN")),
+        this.db.select().from(notifications)
+          .leftJoin(users, eq(users.id, notifications.to))
+          .where(eq(users.role, "ADMIN"))
+          .limit(limit).offset((page - 1) * limit)
+      ]);
+
     } else {
-      return await this.db.select().from(notifications)
-        .where(and(
-          eq(notifications.to, user.sub),
-          ne(notifications.status, "DELETED")
-        ))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(notifications)
+          .where(and(
+            eq(notifications.to, user.sub),
+          )),
+        this.db.select().from(notifications)
+          .where(and(
+            eq(notifications.to, user.sub),
+          ))
+          .limit(limit).offset((page - 1) * limit)
+      ]);
     }
+
+    return { count: Math.ceil(countResult / limit), data };
   }
 
   async getById(user: UserInterface, id: number) {
@@ -72,7 +84,7 @@ export class NotificationService {
   }
 
   async update(user: UserInterface, id: number, status: string) {
-    if (status !== "READ" && status !== "DELETED") {
+    if (status !== "READ") {
       throw new HttpException("Invalid notification's status", 400)
     }
 

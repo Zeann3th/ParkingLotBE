@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { sections, ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ReserveTicketDto } from './dto/reserve-ticket.dto';
@@ -14,21 +14,34 @@ export class TicketService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
-    let ticketList: any;
+    let countResult: number = 0;
+    let data: any[] = [];
     if (user.role === "ADMIN" || user.role === "SECURITY") {
-      ticketList = await this.db.select().from(tickets)
-        .leftJoin(userTickets, eq(userTickets.ticketId, tickets.id))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(tickets),
+        this.db.select().from(tickets)
+          .limit(limit).offset((page - 1) * limit)
+      ]);
+
+      return { count: Math.ceil(countResult / limit), data };
     } else {
-      ticketList = await this.db.select().from(userTickets)
-        .where(eq(userTickets.userId, user.sub))
-        .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(userTickets)
+          .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+          .where(eq(userTickets.userId, user.sub)),
+        this.db.select({ tickets: tickets, user_tickets: userTickets }).from(userTickets)
+          .leftJoin(tickets, eq(tickets.id, userTickets.ticketId))
+          .where(eq(userTickets.userId, user.sub))
+      ]);
+
+      return {
+        count: Math.ceil(countResult / limit),
+        data: data.map(({ tickets, user_tickets }) => {
+          const { ticketId, ...rest } = user_tickets
+          return { ...tickets, ...rest };
+        })
+      };
     }
-
-    const res = ticketList.map(({ tickets, user_tickets }) => ({ ...tickets, ...user_tickets }));
-
-    return res;
   }
 
   async getById(user: UserInterface, id: number) {

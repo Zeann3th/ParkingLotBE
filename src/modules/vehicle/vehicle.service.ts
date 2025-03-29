@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq, like } from 'drizzle-orm';
+import { and, count, eq, like } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
@@ -10,24 +10,35 @@ import { CreateVehicleDto } from './dto/create-vehicle.dto';
 export class VehicleService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface, plate?: string, page: number = 1, limit: number = 10) {
-    let vehicleList: any;
-    if (plate) {
-      vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
-        .where(like(vehicles.plate, `${plate}%`))
-        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
-        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
-    } else {
-      vehicleList = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
-        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
-        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId))
-        .limit(limit).offset((page - 1) * limit);
-    }
+  async search(plate: string) {
+    const data = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+      .where(like(vehicles.plate, `%${plate}%`))
+      .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+      .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
 
-    return vehicleList.map(({ vehicle, residence }) => ({ ...vehicle, residence }));
+    return {
+      count: data.length,
+      data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
+    };
   }
 
-  async getById(user: UserInterface, id: number) {
+  async getAll(page: number = 1, limit: number = 10) {
+
+    const [[{ countResult }], data] = await Promise.all([
+      this.db.select({ countResult: count() }).from(vehicles),
+      this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId))
+        .limit(limit).offset((page - 1) * limit)
+    ]);
+
+    return {
+      count: Math.ceil(countResult / limit),
+      data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
+    };
+  }
+
+  async getById(id: number) {
     const [vehicle] = await this.db.select().from(vehicles)
       .where(eq(vehicles.id, id))
       .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
