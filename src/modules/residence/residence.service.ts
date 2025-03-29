@@ -1,5 +1,5 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
@@ -12,15 +12,27 @@ export class ResidenceService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+    let countResult: number = 0;
+    let data: any[] = [];
     if (user.role === "ADMIN" || user.role === "SECURITY") {
-      return await this.db.select().from(residences)
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(residences),
+        this.db.select().from(residences)
+          .limit(limit).offset((page - 1) * limit)
+      ]);
+
+      return { count: Math.ceil(countResult / limit), data };
     } else {
-      const res = await this.db.select({ residence: residences }).from(residences)
-        .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
-        .where(eq(userResidences.userId, user.sub))
-        .limit(limit).offset((page - 1) * limit);
-      return res.map(({ residence }) => residence);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(residences)
+          .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
+          .where(eq(userResidences.userId, user.sub)),
+        this.db.select({ residence: residences }).from(residences)
+          .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
+          .where(eq(userResidences.userId, user.sub))
+      ]);
+
+      return { count: Math.ceil(countResult / limit), data: data.map(({ residence }) => residence) };
     }
   }
 

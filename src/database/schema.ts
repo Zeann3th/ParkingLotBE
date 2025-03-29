@@ -99,7 +99,7 @@ export const notifications = sqliteTable("notifications", {
   from: integer("from").notNull().references(() => users.id, { onDelete: "cascade" }),
   to: integer("to").notNull().references(() => users.id, { onDelete: "cascade" }),
   message: text().notNull(),
-  status: text("status", { enum: ["PENDING", "READ", "DELETED"] }).$default(() => "PENDING"),
+  status: text("status", { enum: ["PENDING", "READ"] }).$default(() => "PENDING"),
   createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   index("to_idx").on(table.to)

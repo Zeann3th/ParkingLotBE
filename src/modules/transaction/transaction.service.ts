@@ -1,6 +1,6 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { and, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { ticketPrices, tickets, transactions, users, userTickets } from 'src/database/schema';
@@ -47,18 +47,28 @@ export class TransactionService {
   }
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
-    let transactionList: any;
+    let countResult: number = 0;
+    let data: any[] = [];
     if (user.role === "ADMIN") {
-      transactionList = await this.db.select().from(transactions)
-        .orderBy(desc(transactions.id))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(transactions),
+        this.db.select().from(transactions)
+          .orderBy(desc(transactions.id))
+          .limit(limit).offset((page - 1) * limit)
+      ]);
+
     } else {
-      transactionList = await this.db.select().from(transactions)
-        .where(eq(transactions.userId, user.sub))
-        .orderBy(desc(transactions.id))
-        .limit(limit).offset((page - 1) * limit);
+      [[{ countResult }], data] = await Promise.all([
+        this.db.select({ countResult: count() }).from(transactions)
+          .where(eq(transactions.userId, user.sub)),
+        this.db.select().from(transactions)
+          .where(eq(transactions.userId, user.sub))
+          .orderBy(desc(transactions.id))
+          .limit(limit).offset((page - 1) * limit)
+      ]);
     }
-    return transactionList;
+
+    return { count: Math.ceil(countResult / limit), data };
   }
 
   async getById(user: UserInterface, id: number) {
