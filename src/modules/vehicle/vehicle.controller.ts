@@ -27,18 +27,19 @@ export class VehicleController {
   }
 
   @ApiOperation({ summary: "Search vehicles by plate" })
-  @ApiParam({ name: "plate", required: true, type: String })
   @ApiBearerAuth()
+  @ApiQuery({ name: "plate", required: true, type: String })
   @ApiResponse({ status: 200, description: "Returns vehicles with their residence info (if exist)" })
   @Roles("ADMIN", "SECURITY")
-  @Get("search/:plate")
-  async search(@Param("plate") plate: string) {
+  @Get("search")
+  async search(@Query("plate") plate: string) {
     return await this.vehicleService.search(plate);
   }
 
   @ApiOperation({ summary: "Get vehicle by id" })
+  @ApiParam({ name: "id", required: true, type: Number })
   @ApiBearerAuth()
-  @ApiResponse({ status: 200, description: "Returns vehicle witj their residence info (if exist)" })
+  @ApiResponse({ status: 200, description: "Returns vehicle with their residence info (if exist)" })
   @ApiResponse({ status: 403, description: "Not authorized to access this vehicle" })
   @Roles("ADMIN", "SECURITY")
   @Get(":id")
@@ -68,6 +69,7 @@ export class VehicleController {
   }
 
   @ApiOperation({ summary: "Update vehicle" })
+  @ApiParam({ name: "id", required: true, type: Number })
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Patch(":id")
@@ -75,6 +77,8 @@ export class VehicleController {
     return await this.vehicleService.update(id, plate);
   }
 
+  @ApiOperation({ summary: "Delete vehicle" })
+  @ApiParam({ name: "id", required: true, type: Number })
   @ApiBearerAuth()
   @Roles("ADMIN")
   @Delete(":id")
