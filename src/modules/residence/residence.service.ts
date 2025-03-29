@@ -40,7 +40,10 @@ export class ResidenceService {
     const residentList = (await this.db.select({ resident: users }).from(userResidences)
       .where(eq(userResidences.residenceId, id))
       .leftJoin(users, eq(users.id, userResidences.userId)))
-      .map(({ resident }) => resident);
+      .map(({ resident }) => {
+        const { password, refreshToken, ...safeUser } = resident!;
+        return safeUser;
+      });
 
     if (user.role !== "ADMIN" && user.role !== "SECURITY" && !residentList.some(resident => resident!.id === user.sub)) {
       throw new HttpException("Not authorized to access this residence", 403);
