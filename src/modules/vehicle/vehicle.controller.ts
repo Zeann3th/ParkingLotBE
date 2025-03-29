@@ -21,10 +21,9 @@ export class VehicleController {
   @Roles("ADMIN", "SECURITY")
   @Get()
   async getAll(
-    @User() user: UserInterface,
     @Query("page", ParseIntPipe) page: number,
     @Query("limit", ParseIntPipe) limit: number) {
-    return await this.vehicleService.getAll(user, page, limit);
+    return await this.vehicleService.getAll(page, limit);
   }
 
   @ApiOperation({ summary: "Search vehicles by plate" })
@@ -43,10 +42,8 @@ export class VehicleController {
   @ApiResponse({ status: 403, description: "Not authorized to access this vehicle" })
   @Roles("ADMIN", "SECURITY")
   @Get(":id")
-  async getById(
-    @User() user: UserInterface,
-    @Param("id", ParseIntPipe) id: number) {
-    return await this.vehicleService.getById(user, id);
+  async getById(@Param("id", ParseIntPipe) id: number) {
+    return await this.vehicleService.getById(id);
   }
 
   @ApiOperation({ summary: "Create/Register a vehicle" })

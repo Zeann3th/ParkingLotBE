@@ -22,7 +22,7 @@ export class VehicleService {
     };
   }
 
-  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+  async getAll(page: number = 1, limit: number = 10) {
 
     const [[{ countResult }], data] = await Promise.all([
       this.db.select({ countResult: count() }).from(vehicles),
@@ -38,7 +38,7 @@ export class VehicleService {
     };
   }
 
-  async getById(user: UserInterface, id: number) {
+  async getById(id: number) {
     const [vehicle] = await this.db.select().from(vehicles)
       .where(eq(vehicles.id, id))
       .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
