@@ -22,7 +22,6 @@ export class VehicleController {
   @Get()
   async getAll(
     @User() user: UserInterface,
-    @Query("plate") plate: string,
     @Query("page", ParseIntPipe) page: number,
     @Query("limit", ParseIntPipe) limit: number) {
     return await this.vehicleService.getAll(user, page, limit);

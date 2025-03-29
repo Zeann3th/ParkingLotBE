@@ -1,11 +1,10 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, eq, like } from 'drizzle-orm';
+import { and, count, eq, like } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
-import { count } from 'console';
 
 @Injectable()
 export class VehicleService {
@@ -24,12 +23,14 @@ export class VehicleService {
   }
 
   async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
-    let countResult: number = 0;
 
-    const data = await this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
-      .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
-      .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId))
-      .limit(limit).offset((page - 1) * limit);
+    const [[{ countResult }], data] = await Promise.all([
+      this.db.select({ countResult: count() }).from(vehicles),
+      this.db.select({ vehicle: vehicles, residence: residences }).from(vehicles)
+        .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
+        .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId))
+        .limit(limit).offset((page - 1) * limit)
+    ]);
 
     return {
       count: Math.ceil(countResult / limit),
