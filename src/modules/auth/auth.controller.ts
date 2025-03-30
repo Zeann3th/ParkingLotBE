@@ -61,8 +61,6 @@ export class AuthController {
       secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/",
-      sameSite: "none",
-      partitioned: true,
     });
     return response.send({ access_token: accessToken });
   }

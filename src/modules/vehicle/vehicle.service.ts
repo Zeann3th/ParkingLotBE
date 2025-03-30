@@ -22,7 +22,7 @@ export class VehicleService {
     };
   }
 
-  async getAll(page: number = 1, limit: number = 10) {
+  async getAll(page: number, limit: number) {
 
     const [[{ countResult }], data] = await Promise.all([
       this.db.select({ countResult: count() }).from(vehicles),

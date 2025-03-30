@@ -10,7 +10,7 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 export class NotificationService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
-  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+  async getAll(user: UserInterface, page: number, limit: number) {
     let countResult: number = 0;
     let data: any[] = [];
     if (user.role === "ADMIN") {

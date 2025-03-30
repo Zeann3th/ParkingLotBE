@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards, Headers, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, UseGuards, Headers, Query, DefaultValuePipe } from '@nestjs/common';
 import { TicketService } from './ticket.service';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
@@ -35,8 +35,8 @@ export class TicketController {
   async getAll(
     @Headers("Cache-Control") cacheOption: string,
     @User() user: UserInterface,
-    @Query("page", ParseIntPipe) page: number,
-    @Query("limit", ParseIntPipe) limit: number
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number
   ) {
     const key = user.role !== "USER" ? `tickets:${page}:${limit}` : `tickets:${user.sub}:${page}:${limit}`;
     if (cacheOption && cacheOption !== "no-cache") {

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -33,8 +33,8 @@ export class NotificationController {
   async getAll(
     @Headers("Cache-Control") cacheOption: string,
     @User() user: UserInterface,
-    @Query("page", ParseIntPipe) page: number,
-    @Query("limit", ParseIntPipe) limit: number
+    @Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number
   ) {
     const key = user.role === "ADMIN" ? `notifications` : `notifications:${user.sub}`;
     if (cacheOption && cacheOption !== "no-cache") {
