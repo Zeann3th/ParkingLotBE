@@ -46,7 +46,7 @@ export class TransactionService {
     return;
   }
 
-  async getAll(user: UserInterface, page: number = 1, limit: number = 10) {
+  async getAll(user: UserInterface, page: number, limit: number) {
     let countResult: number = 0;
     let data: any[] = [];
     if (user.role === "ADMIN") {
