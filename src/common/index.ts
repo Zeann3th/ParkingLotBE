@@ -4,6 +4,7 @@ import { z } from "zod";
 const schema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(["production", "development"]).default("development"),
+  APP_URL: z.string({ required_error: "APP_URL is required" }),
 
   DATABASE_URL: z.string({ required_error: "DATABASE_URL is required" }),
   DATABASE_AUTH_TOKEN: z.string({ required_error: "DATABASE_AUTH_TOKEN is required" }),
