@@ -6,6 +6,9 @@ import { DRIZZLE } from 'src/database/drizzle.module';
 import { ticketPrices, tickets, transactions, users, userTickets } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
+import crypto from 'crypto';
+import env from 'src/common';
+import { TransactionCheckOutDto } from './dto/transaction-check-out.dto';
 
 @Injectable()
 export class TransactionService {
@@ -26,7 +29,7 @@ export class TransactionService {
         inArray(tickets.type, ["MONTHLY", "RESERVED"]),
         ne(tickets.status, "LOST"),
         ne(tickets.status, "CANCELED"),
-      ))
+      ));
 
     const transactionList = ticketList
       .filter(({ price }) => price !== null)
@@ -106,6 +109,51 @@ export class TransactionService {
     }
   }
 
+  async checkOut(id: number, user: UserInterface, ip: string, { bankCode, language = "vn" }: TransactionCheckOutDto) {
+    const [transaction] = await this.db.select().from(transactions)
+      .where(and(
+        eq(transactions.id, id),
+        eq(transactions.userId, user.sub)
+      ));
+
+    if (!transaction) {
+      throw new HttpException("Transaction not found", 404);
+    }
+
+    process.env.TZ = "Asia/Ho_Chi_Minh";
+
+    const date = this.formatDate(new Date());
+
+    let params = {
+      "vnp_Version": "2.1.0",
+      "vnp_Command": "pay",
+      "vnp_TmnCode": env.GATEWAY.TMN_CODE,
+      "vnp_local": language,
+      "vnp_CurrCode": "VND",
+      "vnp_TxnRef": String(id),
+      "vnp_OrderInfo": `Transaction ID: ${id}`,
+      "vnp_OrderType": "other",
+      "vnp_Amount": String(transaction.amount * 100),
+      "vnp_ReturnUrl": env.GATEWAY.RETURN_URL + "/transactions/checkout",
+      "vnp_IpAddr": ip,
+      "vnp_CreateDate": date,
+      "vnp_BankCode": bankCode,
+    };
+
+    params = this.privatesortObject(params);
+
+    const signData = Object.entries(params)
+      .map(([key, value]) => `${key}=${value}`)
+      .join("&");
+
+    const hmac = crypto.createHmac("sha512", env.GATEWAY.HASH_SECRET);
+    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+
+    params["vnp_SecureHash"] = signed;
+
+    return env.GATEWAY.URL + "?" + new URLSearchParams(params).toString();
+  }
+
   async update(id: number, { amount, status }: UpdateTransactionDto) {
     if (!amount && !status) {
       throw new HttpException("Missing required fields in payload", 400);
@@ -141,4 +189,28 @@ export class TransactionService {
     return;
   }
 
+  private formatDate = (date) => {
+    const d = new Date(date);
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+
+    return `${year}${month}${day}${hours}${minutes}${seconds}`;
+  };
+
+  privatesortObject = (obj: any): any => {
+    const sorted: Record<string, string> = {};
+    const keys: string[] = Object.keys(obj).map(encodeURIComponent).sort();
+
+    for (const key of keys) {
+      const originalKey = decodeURIComponent(key);
+      sorted[key] = encodeURIComponent(String(obj[originalKey])).replace(/%20/g, "+");
+    }
+
+    return sorted;
+  };
 }

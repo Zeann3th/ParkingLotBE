@@ -1,4 +1,4 @@
-import { Body, Controller, DefaultValuePipe, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Redirect, Request, UseGuards } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -9,6 +9,8 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
+import { TransactionCheckOutDto } from './dto/transaction-check-out.dto';
+import env from 'src/common';
 
 @Controller('transactions')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -98,6 +100,25 @@ export class TransactionController {
   @Post()
   async create(@Body() body: CreateTransactionDto) {
     return await this.transactionService.create(body);
+  }
+
+  @ApiOperation({ summary: "Check out transaction" })
+  @Post(":id/checkout")
+  @Redirect(`${env.APP_URL}/transactions`, 302)
+  async checkOut(
+    @User() user: UserInterface,
+    @Request() req: Request,
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: TransactionCheckOutDto
+  ) {
+    const ip = req.headers["x-real-ip"] || req.headers["x-forwarded-for"];
+    const url = await this.transactionService.checkOut(id, user, ip, body);
+    return { url };
+  }
+
+  @Get("transactions/callback")
+  async callback() {
+    return { message: "Callback received" };
   }
 
   @ApiOperation({ summary: "Update transaction by id" })

@@ -18,7 +18,12 @@ const schema = z.object({
   SMTP_EMAIL: z.string({ required_error: "SMTP_EMAIL is required" })
     .email({ message: "SMTP_EMAIL must be a valid email" }),
   SMTP_PASSWORD: z.string({ required_error: "SMTP_PASSWORD is required" }),
-})
+
+  GW_TMN_CODE: z.string({ required_error: "TMN_CODE is required" }),
+  GW_HASH_SECRET: z.string({ required_error: "HASH_SECRET is required" }),
+  GW_URL: z.string({ required_error: "GW_URL is required" }),
+  GW_RETURN_URL: z.string({ required_error: "GW_RETURN_URL is required" }),
+});
 
 export type Env = z.infer<typeof schema>;
 
@@ -37,6 +42,14 @@ try {
   process.exit(1);
 }
 
-const env = parsed;
+const env = {
+  ...parsed,
+  GATEWAY: {
+    TMN_CODE: parsed.GW_TMN_CODE,
+    HASH_SECRET: parsed.GW_HASH_SECRET,
+    URL: parsed.GW_URL,
+    RETURN_URL: parsed.GW_RETURN_URL,
+  }
+};
 
 export default env;
