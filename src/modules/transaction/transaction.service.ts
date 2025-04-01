@@ -6,9 +6,10 @@ import { DRIZZLE } from 'src/database/drizzle.module';
 import { ticketPrices, tickets, transactions, users, userTickets } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
-import crypto from 'crypto';
+import { createHmac } from "crypto";
 import env from 'src/common';
-import { TransactionCheckOutDto } from './dto/transaction-check-out.dto';
+import { CreateOrder, OrderResult } from './types';
+import axios from 'axios';
 
 @Injectable()
 export class TransactionService {
@@ -109,7 +110,7 @@ export class TransactionService {
     }
   }
 
-  async checkOut(id: number, user: UserInterface, ip: string, { bankCode, language = "vn" }: TransactionCheckOutDto) {
+  async checkOut(id: number, user: UserInterface) {
     const [transaction] = await this.db.select().from(transactions)
       .where(and(
         eq(transactions.id, id),
@@ -120,38 +121,72 @@ export class TransactionService {
       throw new HttpException("Transaction not found", 404);
     }
 
-    process.env.TZ = "Asia/Ho_Chi_Minh";
+    const transId = `${transaction.year}${transaction.month}${transaction.id}`;
 
-    const date = this.formatDate(new Date());
-
-    let params = {
-      "vnp_Version": "2.1.0",
-      "vnp_Command": "pay",
-      "vnp_TmnCode": env.GATEWAY.TMN_CODE,
-      "vnp_local": language,
-      "vnp_CurrCode": "VND",
-      "vnp_TxnRef": String(id),
-      "vnp_OrderInfo": `Transaction ID: ${id}`,
-      "vnp_OrderType": "other",
-      "vnp_Amount": String(transaction.amount * 100),
-      "vnp_ReturnUrl": env.GATEWAY.RETURN_URL + "/transactions/checkout",
-      "vnp_IpAddr": ip,
-      "vnp_CreateDate": date,
-      "vnp_BankCode": bankCode,
+    const date = new Date();
+    const order: CreateOrder = {
+      app_id: String(env.GATEWAY.APP_ID),
+      app_trans_id: `${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}_${transId}`,
+      app_user: String(`${user.sub}_${user.username}`),
+      app_time: Date.now(),
+      amount: 200000,
+      item: JSON.stringify([{ price: transaction.amount, month: transaction.month, year: transaction.year }]),
+      embed_data: JSON.stringify({ redirectUrl: `${env.APP_URL}/transactions/${transaction.id}` }),
+      //callback_url: "http://localhost:8080/v1/transactions/callback",
+      description: `Transaction for ticket purchase. Transaction ID: ${transaction.id}`,
+      bank_code: "zalopayapp",
     };
 
-    params = this.privatesortObject(params);
+    const data =
+      env.GATEWAY.APP_ID +
+      "|" + order.app_trans_id +
+      "|" + order.app_user +
+      "|" + order.amount +
+      "|" + order.app_time +
+      "|" + order.embed_data +
+      "|" + order.item;
 
-    const signData = Object.entries(params)
-      .map(([key, value]) => `${key}=${value}`)
-      .join("&");
+    order.mac = createHmac("sha256", env.GATEWAY.PUBLIC_KEY)
+      .update(data)
+      .digest("hex");
 
-    const hmac = crypto.createHmac("sha512", env.GATEWAY.HASH_SECRET);
-    const signed = hmac.update(Buffer.from(signData, "utf-8")).digest("hex");
+    console.log("order", order);
 
-    params["vnp_SecureHash"] = signed;
+    const res = await axios.post("https://sb-openapi.zalopay.vn/v2/create", null,
+      { params: order }
+    );
 
-    return env.GATEWAY.URL + "?" + new URLSearchParams(params).toString();
+    return { ...res.data, app_trans_id: order.app_trans_id };
+  }
+
+  async callback(data: string, reqMac: string) {
+    if (!data || !reqMac) {
+      throw new HttpException("Missing required fields in payload", 400);
+    }
+    let result: OrderResult;
+    try {
+      const mac = createHmac("sha256", env.GATEWAY.PRIVATE_KEY)
+        .update(data)
+        .digest("hex");
+
+      if (reqMac !== mac) {
+        result = {
+          return_code: -1,
+          return_message: "mac not equal",
+        };
+      } else {
+        result = {
+          return_code: 1,
+          return_message: "success",
+        };
+      }
+    } catch (err) {
+      result = {
+        return_code: 0,
+        return_message: (err as any).message,
+      };
+    }
+    return result;
   }
 
   async update(id: number, { amount, status }: UpdateTransactionDto) {
@@ -188,29 +223,4 @@ export class TransactionService {
       .where(eq(transactions.id, id));
     return;
   }
-
-  private formatDate = (date) => {
-    const d = new Date(date);
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-
-    return `${year}${month}${day}${hours}${minutes}${seconds}`;
-  };
-
-  privatesortObject = (obj: any): any => {
-    const sorted: Record<string, string> = {};
-    const keys: string[] = Object.keys(obj).map(encodeURIComponent).sort();
-
-    for (const key of keys) {
-      const originalKey = decodeURIComponent(key);
-      sorted[key] = encodeURIComponent(String(obj[originalKey])).replace(/%20/g, "+");
-    }
-
-    return sorted;
-  };
 }

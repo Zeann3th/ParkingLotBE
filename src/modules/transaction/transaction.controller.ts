@@ -1,4 +1,4 @@
-import { Body, Controller, DefaultValuePipe, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Redirect, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Delete, Get, Headers, HttpCode, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { User } from 'src/decorators/user.decorator';
 import { UserInterface } from 'src/common/types';
@@ -9,17 +9,16 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
-import { TransactionCheckOutDto } from './dto/transaction-check-out.dto';
 import env from 'src/common';
 
 @Controller('transactions')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class TransactionController {
   constructor(
     private readonly transactionService: TransactionService,
     @InjectRedis() private readonly redis: Redis
   ) { }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get all transactions" })
   @ApiHeader({
     name: "Cache-Control",
@@ -50,6 +49,7 @@ export class TransactionController {
     return transactionList;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get transaction by id" })
   @ApiHeader({
     name: "Cache-Control",
@@ -78,6 +78,7 @@ export class TransactionController {
     return transaction;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Create a transaction" })
   @ApiBody({
     type: "object",
@@ -102,25 +103,40 @@ export class TransactionController {
     return await this.transactionService.create(body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Check out transaction" })
+  @ApiParam({ name: "id", description: "Transaction id" })
   @Post(":id/checkout")
-  @Redirect(`${env.APP_URL}/transactions`, 302)
+  @Roles("USER")
+  @ApiBearerAuth()
   async checkOut(
     @User() user: UserInterface,
-    @Request() req: Request,
     @Param("id", ParseIntPipe) id: number,
-    @Body() body: TransactionCheckOutDto
   ) {
-    const ip = req.headers["x-real-ip"] || req.headers["x-forwarded-for"];
-    const url = await this.transactionService.checkOut(id, user, ip, body);
-    return { url };
+    return await this.transactionService.checkOut(id, user);
   }
 
-  @Get("transactions/callback")
-  async callback() {
-    return { message: "Callback received" };
+  @ApiOperation({ summary: "Callback from payment gateway" })
+  @ApiBody({
+    type: "object",
+    schema: {
+      properties: {
+        data: { type: "string" },
+        mac: { type: "string" }
+      },
+      required: ["data", "mac"]
+    }
+  })
+  @Post("callback")
+  @HttpCode(200)
+  async callback(
+    @Body("data") data: string,
+    @Body("mac") mac: string,
+  ) {
+    return await this.transactionService.callback(data, mac);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Update transaction by id" })
   @ApiParam({ name: "id", description: "Transaction id" })
   @ApiBody({
@@ -142,6 +158,7 @@ export class TransactionController {
     return await this.transactionService.update(id, body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Delete transaction by id" })
   @ApiParam({ name: "id", description: "Transaction id" })
   @ApiBearerAuth()
