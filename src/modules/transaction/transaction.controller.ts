@@ -9,16 +9,15 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
-import env from 'src/common';
 
 @Controller('transactions')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TransactionController {
   constructor(
     private readonly transactionService: TransactionService,
     @InjectRedis() private readonly redis: Redis
   ) { }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get all transactions" })
   @ApiHeader({
     name: "Cache-Control",
@@ -49,7 +48,6 @@ export class TransactionController {
     return transactionList;
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get transaction by id" })
   @ApiHeader({
     name: "Cache-Control",
@@ -78,7 +76,6 @@ export class TransactionController {
     return transaction;
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Create a transaction" })
   @ApiBody({
     type: "object",
@@ -103,40 +100,6 @@ export class TransactionController {
     return await this.transactionService.create(body);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @ApiOperation({ summary: "Check out transaction" })
-  @ApiParam({ name: "id", description: "Transaction id" })
-  @Post(":id/checkout")
-  @Roles("USER")
-  @ApiBearerAuth()
-  async checkOut(
-    @User() user: UserInterface,
-    @Param("id", ParseIntPipe) id: number,
-  ) {
-    return await this.transactionService.checkOut(id, user);
-  }
-
-  @ApiOperation({ summary: "Callback from payment gateway" })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        data: { type: "string" },
-        mac: { type: "string" }
-      },
-      required: ["data", "mac"]
-    }
-  })
-  @Post("callback")
-  @HttpCode(200)
-  async callback(
-    @Body("data") data: string,
-    @Body("mac") mac: string,
-  ) {
-    return await this.transactionService.callback(data, mac);
-  }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Update transaction by id" })
   @ApiParam({ name: "id", description: "Transaction id" })
   @ApiBody({
@@ -158,7 +121,6 @@ export class TransactionController {
     return await this.transactionService.update(id, body);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Delete transaction by id" })
   @ApiParam({ name: "id", description: "Transaction id" })
   @ApiBearerAuth()

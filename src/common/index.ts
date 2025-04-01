@@ -18,11 +18,7 @@ const schema = z.object({
   SMTP_EMAIL: z.string({ required_error: "SMTP_EMAIL is required" })
     .email({ message: "SMTP_EMAIL must be a valid email" }),
   SMTP_PASSWORD: z.string({ required_error: "SMTP_PASSWORD is required" }),
-
-  GW_APP_ID: z.string({ required_error: "GW_APP_ID is required" }),
-  GW_PUBLIC_KEY: z.string({ required_error: "GW_PUBLIC_KEY is required" }),
-  GW_PRIVATE_KEY: z.string({ required_error: "GW_PRIVATE_KEY is required" }),
-});
+})
 
 export type Env = z.infer<typeof schema>;
 
@@ -41,13 +37,6 @@ try {
   process.exit(1);
 }
 
-const env = {
-  ...parsed,
-  GATEWAY: {
-    APP_ID: parsed.GW_APP_ID,
-    PUBLIC_KEY: parsed.GW_PUBLIC_KEY,
-    PRIVATE_KEY: parsed.GW_PRIVATE_KEY,
-  }
-};
+const env = parsed;
 
 export default env;
