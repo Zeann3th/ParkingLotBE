@@ -13,13 +13,13 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 
 @Controller('tickets')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class TicketController {
   constructor(
     private readonly ticketService: TicketService,
     @InjectRedis() private readonly redis: Redis
   ) { }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get all tickets" })
   @ApiHeader({
     name: "Cache-Control",
@@ -56,9 +56,7 @@ export class TicketController {
     required: false,
     description: "no-cache to ignore cache"
   })
-  @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Get ticket pricing" })
-  @Roles("ADMIN", "SECURITY")
   @Get("pricing")
   async getPricing(@Headers("Cache-Control") cacheOption: string) {
     if (cacheOption && cacheOption !== "no-cache") {
@@ -72,6 +70,7 @@ export class TicketController {
     return pricing;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Get ticket by id" })
   @ApiHeader({
     name: "Cache-Control",
@@ -99,6 +98,7 @@ export class TicketController {
     return ticket;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Create a ticket" })
   @ApiBody({
     schema: {
@@ -120,6 +120,7 @@ export class TicketController {
     return await this.ticketService.create(body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Create batch of daily tickets" })
   @ApiBody({
     schema: {
@@ -138,6 +139,7 @@ export class TicketController {
     return await this.ticketService.createDailyTickets(amount);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Update ticket pricing" })
   @ApiBody({
     schema: {
@@ -157,6 +159,7 @@ export class TicketController {
     return await this.ticketService.updatePricing(body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Update a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
@@ -178,6 +181,7 @@ export class TicketController {
     return await this.ticketService.update(id, body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Reserve a slot" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
@@ -197,6 +201,7 @@ export class TicketController {
     return await this.ticketService.reserve(user, id, body);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Cancel user's ticket subscription" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBody({
@@ -215,6 +220,7 @@ export class TicketController {
     return await this.ticketService.cancel(user, id, sectionId);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Delete a ticket" })
   @ApiParam({ name: "id", description: "Ticket id" })
   @ApiBearerAuth()
