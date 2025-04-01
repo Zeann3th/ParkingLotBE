@@ -6,6 +6,10 @@ import { DRIZZLE } from 'src/database/drizzle.module';
 import { ticketPrices, tickets, transactions, users, userTickets } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
+import { createHmac } from "crypto";
+import env from 'src/common';
+import { CreateOrder, OrderResult } from './types';
+import axios from 'axios';
 
 @Injectable()
 export class TransactionService {
@@ -26,7 +30,7 @@ export class TransactionService {
         inArray(tickets.type, ["MONTHLY", "RESERVED"]),
         ne(tickets.status, "LOST"),
         ne(tickets.status, "CANCELED"),
-      ))
+      ));
 
     const transactionList = ticketList
       .filter(({ price }) => price !== null)
@@ -106,6 +110,85 @@ export class TransactionService {
     }
   }
 
+  async checkOut(id: number, user: UserInterface) {
+    const [transaction] = await this.db.select().from(transactions)
+      .where(and(
+        eq(transactions.id, id),
+        eq(transactions.userId, user.sub)
+      ));
+
+    if (!transaction) {
+      throw new HttpException("Transaction not found", 404);
+    }
+
+    const transId = `${transaction.year}${transaction.month}${transaction.id}`;
+
+    const date = new Date();
+    const order: CreateOrder = {
+      app_id: String(env.GATEWAY.APP_ID),
+      app_trans_id: `${date.getFullYear().toString().slice(-2)}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}_${transId}`,
+      app_user: String(`${user.sub}_${user.username}`),
+      app_time: Date.now(),
+      amount: 200000,
+      item: JSON.stringify([{ price: transaction.amount, month: transaction.month, year: transaction.year }]),
+      embed_data: JSON.stringify({ redirectUrl: `${env.APP_URL}/transactions/${transaction.id}` }),
+      //callback_url: "http://localhost:8080/v1/transactions/callback",
+      description: `Transaction for ticket purchase. Transaction ID: ${transaction.id}`,
+      bank_code: "zalopayapp",
+    };
+
+    const data =
+      env.GATEWAY.APP_ID +
+      "|" + order.app_trans_id +
+      "|" + order.app_user +
+      "|" + order.amount +
+      "|" + order.app_time +
+      "|" + order.embed_data +
+      "|" + order.item;
+
+    order.mac = createHmac("sha256", env.GATEWAY.PUBLIC_KEY)
+      .update(data)
+      .digest("hex");
+
+    console.log("order", order);
+
+    const res = await axios.post("https://sb-openapi.zalopay.vn/v2/create", null,
+      { params: order }
+    );
+
+    return { ...res.data, app_trans_id: order.app_trans_id };
+  }
+
+  async callback(data: string, reqMac: string) {
+    if (!data || !reqMac) {
+      throw new HttpException("Missing required fields in payload", 400);
+    }
+    let result: OrderResult;
+    try {
+      const mac = createHmac("sha256", env.GATEWAY.PRIVATE_KEY)
+        .update(data)
+        .digest("hex");
+
+      if (reqMac !== mac) {
+        result = {
+          return_code: -1,
+          return_message: "mac not equal",
+        };
+      } else {
+        result = {
+          return_code: 1,
+          return_message: "success",
+        };
+      }
+    } catch (err) {
+      result = {
+        return_code: 0,
+        return_message: (err as any).message,
+      };
+    }
+    return result;
+  }
+
   async update(id: number, { amount, status }: UpdateTransactionDto) {
     if (!amount && !status) {
       throw new HttpException("Missing required fields in payload", 400);
@@ -140,5 +223,4 @@ export class TransactionService {
       .where(eq(transactions.id, id));
     return;
   }
-
 }
