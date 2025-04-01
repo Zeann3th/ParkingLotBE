@@ -121,7 +121,7 @@ export class TransactionService {
       throw new HttpException("Transaction not found", 404);
     }
 
-    const transId = `${transaction.year}${transaction.month}${transaction.id}`;
+    const transId = `${Date.now()}${transaction.id}`;
 
     const date = new Date();
     const order: CreateOrder = {
