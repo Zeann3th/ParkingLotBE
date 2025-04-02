@@ -13,26 +13,21 @@ export class NotificationService {
 
   async getAll(user: UserInterface, page: number, limit: number) {
     if (user.role === "ADMIN") {
-      const to = alias(usersView, "to");
-      const from = alias(usersView, "from");
       const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(notifications)
-          .leftJoin(usersView, eq(usersView.id, notifications.to))
-          .where(eq(usersView.role, "ADMIN")),
+          .where(eq(notifications.to, user.sub)),
         this.db.select({
           notification: notifications,
           userInfo: {
-            id: from.id,
-            username: from.username,
-            name: from.name,
+            id: usersView.id,
+            username: usersView.username,
+            name: usersView.name,
           }
         }).from(notifications)
-          .leftJoin(to, eq(to.id, notifications.to))
-          .where(eq(to.role, "ADMIN"))
-          .leftJoin(from, eq(from.id, notifications.from))
+          .where(eq(notifications.to, user.sub))
+          .leftJoin(usersView, eq(usersView.id, notifications.from))
           .limit(limit).offset((page - 1) * limit)
       ]);
-
 
       return {
         count: Math.ceil(countResult / limit),
