@@ -61,6 +61,8 @@ export class AuthController {
       secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/",
+      sameSite: "none",
+      partitioned: true,
     });
     return response.send({ access_token: accessToken });
   }
@@ -74,7 +76,7 @@ export class AuthController {
   @ApiResponse({ status: 500, description: "Failed to refresh user's access token" })
   @Get('refresh')
   async refresh(@Req() request: Request) {
-    const refreshToken = request.cookies["refresh_token"]
+    const refreshToken = request.cookies["refresh_token"];
     return await this.authService.refresh(refreshToken);
   }
 
@@ -84,9 +86,16 @@ export class AuthController {
   @Get('logout')
   @HttpCode(204)
   async logout(@Req() request: Request, @Res() response: Response) {
-    const refreshToken = request.cookies["refresh_token"]
+    const refreshToken = request.cookies["refresh_token"];
     await this.authService.logout(refreshToken);
-    response.clearCookie("refresh_token");
+    response.clearCookie("refresh_token", {
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      path: "/",
+      sameSite: "none",
+      partitioned: true,
+    });
     return response.status(204).send();
   }
 
@@ -109,7 +118,7 @@ export class AuthController {
   @Roles("ADMIN")
   @Patch(":id")
   async update(@Param("id") id: number, @Body() body: UpdateUserDto) {
-    return await this.authService.update(id, body)
+    return await this.authService.update(id, body);
   }
 
   @ApiOperation({ summary: "Send forgot password request and mail" })
