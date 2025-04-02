@@ -14,7 +14,7 @@ export class NotificationService {
     let countResult: number = 0;
     let data: any[] = [];
     if (user.role === "ADMIN") {
-      const [[{ countResult }], data] = await Promise.all([
+      [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(notifications)
           .leftJoin(usersView, eq(usersView.id, notifications.to))
           .where(eq(usersView.role, "ADMIN")),
