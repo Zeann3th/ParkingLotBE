@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, sqliteView, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -13,27 +13,33 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
+export const usersView = sqliteView("user_views").as((qb) => qb.select({
+  id: users.id,
+  name: users.name,
+  role: users.role,
+}).from(users));
+
 export const residences = sqliteTable("residences", {
   id: integer().primaryKey({ autoIncrement: true }),
   building: text().notNull(),
   room: integer().notNull()
 }, (table) => [
   uniqueIndex("unique_residence_idx").on(table.building, table.room)
-])
+]);
 
 export const userResidences = sqliteTable("user_residences", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" })
 }, (table) => [
   primaryKey({ columns: [table.userId, table.residenceId], name: "pk_user_residences" }),
-])
+]);
 
 export const residenceVehicles = sqliteTable("residence_vehicles", {
   residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" }),
   vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" })
 }, (table) => [
   primaryKey({ columns: [table.vehicleId, table.residenceId], name: "pk_residence_vehicles" }),
-])
+]);
 
 export const sections = sqliteTable("sections", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -103,7 +109,7 @@ export const notifications = sqliteTable("notifications", {
   createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   index("to_idx").on(table.to)
-])
+]);
 
 export const transactions = sqliteTable("transactions", {
   id: integer().primaryKey({ autoIncrement: true }),

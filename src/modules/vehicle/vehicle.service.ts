@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, like } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
+import { residences, residenceVehicles, userResidences, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
@@ -77,7 +77,7 @@ export class VehicleService {
 
     try {
       await this.db.update(vehicles).set({ plate })
-        .where(eq(vehicles.id, id))
+        .where(eq(vehicles.id, id));
     } catch (error: any) {
       if (error.code === 'SQLITE_CONSTRAINT') {
         throw new HttpException("Vehicle having this plate already exists", 409);

@@ -37,7 +37,7 @@ import { APP_GUARD } from '@nestjs/core';
     ParkingModule,
     TicketModule,
     NotificationModule,
-    ResidenceModule, //TODO: Get residences' users and vehicles. Later...
+    ResidenceModule,
     VehicleModule,
     TransactionModule,
   ],
