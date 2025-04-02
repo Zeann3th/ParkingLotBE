@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, count, eq } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { notifications, users } from 'src/database/schema';
+import { notifications, usersView } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 
@@ -14,13 +14,13 @@ export class NotificationService {
     let countResult: number = 0;
     let data: any[] = [];
     if (user.role === "ADMIN") {
-      [[{ countResult }], data] = await Promise.all([
+      const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(notifications)
-          .leftJoin(users, eq(users.id, notifications.to))
-          .where(eq(users.role, "ADMIN")),
+          .leftJoin(usersView, eq(usersView.id, notifications.to))
+          .where(eq(usersView.role, "ADMIN")),
         this.db.select().from(notifications)
-          .leftJoin(users, eq(users.id, notifications.to))
-          .where(eq(users.role, "ADMIN"))
+          .leftJoin(usersView, eq(usersView.id, notifications.to))
+          .where(eq(usersView.role, "ADMIN"))
           .limit(limit).offset((page - 1) * limit)
       ]);
 
@@ -56,8 +56,8 @@ export class NotificationService {
     let recipientId: number | undefined = to;
 
     if (!recipientId) {
-      const [admin] = await this.db.select().from(users)
-        .where(eq(users.role, "ADMIN"));
+      const [admin] = await this.db.select().from(usersView)
+        .where(eq(usersView.role, "ADMIN"));
 
       if (!admin) {
         throw new HttpException("Admin not found", 404);
@@ -65,8 +65,8 @@ export class NotificationService {
 
       recipientId = admin.id;
     } else {
-      const [recipientUser] = await this.db.select().from(users)
-        .where(eq(users.id, recipientId));
+      const [recipientUser] = await this.db.select().from(usersView)
+        .where(eq(usersView.id, recipientId));
 
       if (!recipientUser) {
         throw new HttpException("Recipient not found", 404);
@@ -85,7 +85,7 @@ export class NotificationService {
 
   async update(user: UserInterface, id: number, status: string) {
     if (status !== "READ") {
-      throw new HttpException("Invalid notification's status", 400)
+      throw new HttpException("Invalid notification's status", 400);
     }
 
     const [notification] = await this.db.select().from(notifications)

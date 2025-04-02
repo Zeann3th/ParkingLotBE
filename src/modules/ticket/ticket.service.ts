@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { sections, ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
+import { sections, ticketPrices, tickets, usersView, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -37,7 +37,7 @@ export class TicketService {
       return {
         count: Math.ceil(countResult / limit),
         data: data.map(({ tickets, user_tickets }) => {
-          const { ticketId, ...rest } = user_tickets
+          const { ticketId, ...rest } = user_tickets;
           return { ...tickets, ...rest };
         })
       };
@@ -92,15 +92,15 @@ export class TicketService {
       }
 
       const [user] = await tx.select()
-        .from(users)
-        .where(eq(users.id, userId));
+        .from(usersView)
+        .where(eq(usersView.id, userId));
       if (!user) {
         throw new HttpException("User not found", 404);
       }
 
       const [vehicle] = await tx.select()
         .from(vehicles)
-        .where(eq(vehicles.id, vehicleId))
+        .where(eq(vehicles.id, vehicleId));
       if (!vehicle) {
         throw new HttpException("Vehicle not found", 404);
       }
@@ -128,7 +128,7 @@ export class TicketService {
 
         const [section] = await tx.select()
           .from(sections)
-          .where(eq(sections.id, sectionId))
+          .where(eq(sections.id, sectionId));
         if (!section) {
           throw new HttpException("Section not found", 404);
         }
@@ -233,7 +233,7 @@ export class TicketService {
         .where(and(
           eq(vehicleReservations.sectionId, sectionId),
           eq(vehicleReservations.slot, slot)
-        ))
+        ));
 
       if (existingSlot) {
         throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);

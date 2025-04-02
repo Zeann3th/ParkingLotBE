@@ -3,7 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { ticketPrices, tickets, transactions, users, userTickets } from 'src/database/schema';
+import { ticketPrices, tickets, transactions, usersView, userTickets } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
 import { createHmac } from "crypto";
@@ -91,8 +91,8 @@ export class TransactionService {
   }
 
   async create({ userId, amount, month, year }: CreateTransactionDto) {
-    const [user] = await this.db.select().from(users)
-      .where(eq(users.id, userId));
+    const [user] = await this.db.select().from(usersView)
+      .where(eq(usersView.id, userId));
 
     if (!user) {
       throw new HttpException("User not found", 404);
