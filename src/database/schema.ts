@@ -15,6 +15,7 @@ export const users = sqliteTable("users", {
 
 export const usersView = sqliteView("user_views").as((qb) => qb.select({
   id: users.id,
+  username: users.username,
   name: users.name,
   role: users.role,
 }).from(users));

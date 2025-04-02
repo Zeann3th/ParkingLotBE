@@ -40,7 +40,7 @@ export class ParkingService {
           .where(and(
             eq(tickets.id, ticketId),
             eq(userTickets.vehicleId, vehicle.id)
-          ))
+          ));
 
         if (!ticketDetails) {
           throw new HttpException("Invalid ticket", 400);
@@ -135,7 +135,7 @@ export class ParkingService {
 
       const reservedTickets = await this.db.select({ ticketId: vehicleReservations.ticketId })
         .from(vehicleReservations)
-        .where(eq(vehicleReservations.sectionId, sectionId))
+        .where(eq(vehicleReservations.sectionId, sectionId));
 
       const reservedCount = reservedTickets.length;
       const reservedTicketIds = reservedTickets.map(ticket => ticket.ticketId);
