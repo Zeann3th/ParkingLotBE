@@ -10,6 +10,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 
 const setMiddleware = (app: NestExpressApplication) => {
+  app.use("trust proxy", true);
+
   app.use(compression());
 
   app.use(helmet());
@@ -19,7 +21,7 @@ const setMiddleware = (app: NestExpressApplication) => {
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  })
+  });
 
   app.use(morgan("combined"));
 
@@ -28,9 +30,9 @@ const setMiddleware = (app: NestExpressApplication) => {
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
     whitelist: true,
-  }))
+  }));
 
-}
+};
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
