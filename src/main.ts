@@ -10,7 +10,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 
 const setMiddleware = (app: NestExpressApplication) => {
-  app.use("trust proxy", true);
+  app.set("trust proxy", 1);
 
   app.use(compression());
 
