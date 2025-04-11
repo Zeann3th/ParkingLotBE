@@ -1,1 +1,0 @@
-CREATE VIEW `user_views` AS select "id", "username", "name", "email", "role" from "users";

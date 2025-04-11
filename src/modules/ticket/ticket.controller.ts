@@ -204,20 +204,11 @@ export class TicketController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Cancel user's ticket subscription" })
   @ApiParam({ name: "id", description: "Ticket id" })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        sectionId: { type: "number", example: 1 }
-      },
-      required: ["sectionId"]
-    }
-  })
   @ApiBearerAuth()
   @Roles("ADMIN", "USER")
   @Patch(":id/cancel")
-  async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("sectionId", ParseIntPipe) sectionId: number) {
-    return await this.ticketService.cancel(user, id, sectionId);
+  async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
+    return await this.ticketService.cancel(user, id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

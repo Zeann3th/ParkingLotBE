@@ -134,7 +134,10 @@ export class NotificationService {
       throw new HttpException("Notification not found", 404);
     }
 
-    await this.db.update(notifications).set({ status }).where(
+    await this.db.update(notifications).set({
+      status,
+      updatedAt: (new Date()).toISOString()
+    }).where(
       and(
         eq(notifications.id, id),
         eq(notifications.to, user.sub)

@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpException, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
-import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import env from 'src/common';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
@@ -202,5 +202,17 @@ export class AuthController {
   @Post("resend-email")
   async resendEmail(@Body("email") email: string, @Body("action") action: string) {
     return await this.authService.resendEmail(email, action);
+  }
+
+  @ApiOperation({ summary: "Search user by name, email" })
+  @ApiBearerAuth()
+  @ApiQuery({ name: "name", required: false, type: String })
+  @ApiQuery({ name: "email", required: false, type: String })
+  @ApiResponse({ status: 200, description: "Success" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN", "SECURITY")
+  @Get("search")
+  async search(@Query("name") name: string, @Query("email") email: string) {
+    return await this.authService.search(name, email);
   }
 }

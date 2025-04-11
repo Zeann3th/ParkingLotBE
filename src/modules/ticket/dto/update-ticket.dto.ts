@@ -8,7 +8,7 @@ export class UpdateTicketDto {
   type: TicketType;
 
   @IsString()
-  @IsIn(["AVAILABLE", "INUSE", "LOST"])
+  @IsIn(["AVAILABLE", "INUSE", "LOST", "CANCELED"])
   @IsOptional()
   status: TicketStatus;
 }
