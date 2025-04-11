@@ -216,8 +216,8 @@ export class TicketController {
   @ApiBearerAuth()
   @Roles("ADMIN", "USER")
   @Patch(":id/cancel")
-  async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number, @Body("sectionId", ParseIntPipe) sectionId: number) {
-    return await this.ticketService.cancel(user, id, sectionId);
+  async cancel(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
+    return await this.ticketService.cancel(user, id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

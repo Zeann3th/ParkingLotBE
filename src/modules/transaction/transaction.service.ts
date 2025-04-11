@@ -204,7 +204,8 @@ export class TransactionService {
     await this.db.update(transactions)
       .set({
         amount: amount ?? transaction.amount,
-        status: status ?? transaction.status
+        status: status ?? transaction.status,
+        updatedAt: (new Date()).toISOString(),
       })
       .where(eq(transactions.id, id));
 

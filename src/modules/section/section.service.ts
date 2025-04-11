@@ -14,7 +14,7 @@ export class SectionService {
 
   async getAll(user: UserInterface) {
     if (user.role === "ADMIN") {
-      return await this.db.select().from(sections)
+      return await this.db.select().from(sections);
     }
 
     if (!user.privileges) {
@@ -60,7 +60,8 @@ export class SectionService {
     let request = {
       ...name && { name },
       ...capacity && { capacity },
-    }
+      updatedAt: (new Date()).toISOString(),
+    };
 
     try {
       const [section] = await this.db.update(sections).set(request).where(eq(sections.id, id)).returning();
@@ -120,7 +121,7 @@ export class SectionService {
       eq(history.sectionId, id),
       gte(history.checkedInAt, from),
       lte(history.checkedInAt, to),
-    ))
+    ));
 
     return { revenue: Number(revenue) || 0 };
   }

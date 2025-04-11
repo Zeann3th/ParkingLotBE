@@ -68,7 +68,7 @@ export class AuthService {
 
     await this.db.update(users)
       .set({ refreshToken })
-      .where(eq(users.id, user.id))
+      .where(eq(users.id, user.id));
 
     return { accessToken, refreshToken };
   }
@@ -77,7 +77,7 @@ export class AuthService {
     if (refreshToken) {
       await this.db.update(users)
         .set({ refreshToken: null })
-        .where(eq(users.refreshToken, refreshToken))
+        .where(eq(users.refreshToken, refreshToken));
     }
     return;
   }
@@ -86,17 +86,17 @@ export class AuthService {
     if (!refreshToken) throw new HttpException("Refresh token is required", 401);
 
     try {
-      const decoded = this.jwtService.verify(refreshToken, { secret: env.JWT_REFRESH_SECRET })
+      const decoded = this.jwtService.verify(refreshToken, { secret: env.JWT_REFRESH_SECRET });
 
-      const [user] = await this.db.select().from(users).where(eq(users.refreshToken, refreshToken))
+      const [user] = await this.db.select().from(users).where(eq(users.refreshToken, refreshToken));
       if (!user) throw new HttpException("Invalid refresh token", 403);
 
-      const payload = { sub: user.id, username: user.username, role: user.role }
+      const payload = { sub: user.id, username: user.username, role: user.role };
 
       const accessToken = this.jwtService.sign(payload, {
         secret: env.JWT_ACCESS_SECRET,
         expiresIn: "15m"
-      })
+      });
       return { access_token: accessToken };
     } catch (e) {
       if (e.name === 'TokenExpiredError') {
@@ -215,5 +215,20 @@ export class AuthService {
     }
 
     return { message: "Email sent successfully" };
+  }
+
+  async search(name: string, email: string) {
+    const query = this.db.select().from(users);
+    if (name) {
+      query.where(eq(users.name, name));
+    }
+    if (email) {
+      query.where(eq(users.email, email));
+    }
+    const usersList = await query;
+    return usersList.map((user) => {
+      const { password, refreshToken, isVerified, ...safeUser } = user;
+      return safeUser;
+    });
   }
 }

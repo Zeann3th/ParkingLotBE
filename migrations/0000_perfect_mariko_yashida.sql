@@ -18,6 +18,7 @@ CREATE TABLE `notifications` (
 	`message` text NOT NULL,
 	`status` text,
 	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
 	FOREIGN KEY (`from`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`to`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
@@ -34,13 +35,18 @@ CREATE TABLE `residence_vehicles` (
 CREATE TABLE `residences` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`building` text NOT NULL,
-	`room` integer NOT NULL
+	`room` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `unique_residence_idx` ON `residences` (`building`,`room`);--> statement-breakpoint
 CREATE TABLE `sections` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text NOT NULL,
-	`capacity` integer NOT NULL
+	`capacity` integer NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sections_name_unique` ON `sections` (`name`);--> statement-breakpoint
@@ -54,9 +60,24 @@ CREATE TABLE `ticket_prices` (
 CREATE TABLE `tickets` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`type` text NOT NULL,
-	`status` text NOT NULL
+	`status` text NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `transactions` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`amount` real NOT NULL,
+	`month` integer NOT NULL,
+	`year` integer NOT NULL,
+	`status` text NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `unique_transaction_idx` ON `transactions` (`user_id`,`month`,`year`);--> statement-breakpoint
 CREATE TABLE `user_privileges` (
 	`user_id` integer NOT NULL,
 	`section_id` integer NOT NULL,
@@ -87,6 +108,8 @@ CREATE TABLE `users` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`username` text NOT NULL,
 	`name` text NOT NULL,
+	`email` text NOT NULL,
+	`is_verified` integer NOT NULL,
 	`password` text NOT NULL,
 	`role` text NOT NULL,
 	`refresh_token` text,
@@ -95,6 +118,7 @@ CREATE TABLE `users` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
+CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
 CREATE TABLE `vehicle_reservations` (
 	`ticket_id` integer NOT NULL,
 	`section_id` integer NOT NULL,
@@ -107,7 +131,10 @@ CREATE TABLE `vehicle_reservations` (
 CREATE TABLE `vehicles` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`plate` text NOT NULL,
-	`type` text NOT NULL
+	`type` text NOT NULL,
+	`created_at` text NOT NULL,
+	`updated_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `vehicles_plate_unique` ON `vehicles` (`plate`);
+CREATE UNIQUE INDEX `vehicles_plate_unique` ON `vehicles` (`plate`);--> statement-breakpoint
+CREATE VIEW `user_views` AS select "id", "username", "name", "role" from "users";

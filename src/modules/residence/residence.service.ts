@@ -94,7 +94,8 @@ export class ResidenceService {
 
     await this.db.update(residences).set({
       building: building ?? residence.building,
-      room: room ?? residence.room
+      room: room ?? residence.room,
+      updatedAt: (new Date()).toISOString()
     })
       .where(eq(residences.id, id));
   }

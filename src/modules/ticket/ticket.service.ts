@@ -184,7 +184,8 @@ export class TicketService {
 
     const [updatedTicket] = await this.db.update(tickets).set({
       type: type ?? ticket.type,
-      status: status ?? ticket.status
+      status: status ?? ticket.status,
+      updatedAt: (new Date()).toISOString(),
     }).where(eq(tickets.id, id)).returning();
     return updatedTicket;
   }
@@ -244,12 +245,15 @@ export class TicketService {
         sectionId,
         slot
       });
+
+      await tx.update(tickets).set({ updatedAt: (new Date()).toISOString() })
+        .where(eq(tickets.id, id));
     });
 
     return { message: "Slot reserved successfully" };
   }
 
-  async cancel(user: UserInterface, id: number, sectionId: number) {
+  async cancel(user: UserInterface, id: number) {
     await this.db.transaction(async (tx) => {
 
       const [{ ticket, userTicket, vehicle }] = await tx
@@ -275,14 +279,7 @@ export class TicketService {
         throw new HttpException("Vehicle not found", 400);
       }
 
-      const [section] = await tx.select().from(sections)
-        .where(eq(sections.id, sectionId));
-
-      if (!section) {
-        throw new HttpException("Section not found", 404);
-      }
-
-      await tx.update(tickets).set({ status: "CANCELED" })
+      await tx.update(tickets).set({ status: "CANCELED", updatedAt: (new Date()).toISOString() })
         .where(eq(tickets.id, id));
 
       if (ticket.type !== "RESERVED") {
@@ -290,19 +287,13 @@ export class TicketService {
       }
 
       const [existingSlot] = await tx.select().from(vehicleReservations)
-        .where(and(
-          eq(vehicleReservations.ticketId, ticket.id),
-          eq(vehicleReservations.sectionId, sectionId)
-        ));
+        .where(eq(vehicleReservations.ticketId, ticket.id));
 
       if (!existingSlot) {
         throw new HttpException("No reservation found for this ticket in the specified section", 400);
       }
 
-      await tx.delete(vehicleReservations).where(and(
-        eq(vehicleReservations.ticketId, ticket.id),
-        eq(vehicleReservations.sectionId, sectionId)
-      ));
+      await tx.delete(vehicleReservations).where(eq(vehicleReservations.ticketId, ticket.id));
     });
 
     return { message: "User's subscription canceled, slot unreserved" };

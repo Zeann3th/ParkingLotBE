@@ -76,7 +76,7 @@ export class VehicleService {
     }
 
     try {
-      await this.db.update(vehicles).set({ plate })
+      await this.db.update(vehicles).set({ plate, updatedAt: (new Date()).toISOString() })
         .where(eq(vehicles.id, id));
     } catch (error: any) {
       if (error.code === 'SQLITE_CONSTRAINT') {
