@@ -209,6 +209,7 @@ export class AuthController {
   @ApiQuery({ name: "name", required: false, type: String })
   @ApiQuery({ name: "email", required: false, type: String })
   @ApiResponse({ status: 200, description: "Success" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN", "SECURITY")
   @Get("search")
   async search(@Query("name") name: string, @Query("email") email: string) {

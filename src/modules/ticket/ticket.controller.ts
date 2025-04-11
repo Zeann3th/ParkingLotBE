@@ -204,15 +204,6 @@ export class TicketController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: "Cancel user's ticket subscription" })
   @ApiParam({ name: "id", description: "Ticket id" })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        sectionId: { type: "number", example: 1 }
-      },
-      required: ["sectionId"]
-    }
-  })
   @ApiBearerAuth()
   @Roles("ADMIN", "USER")
   @Patch(":id/cancel")
