@@ -215,4 +215,16 @@ export class AuthController {
   async search(@Query("name") name: string, @Query("email") email: string) {
     return await this.authService.search(name, email);
   }
+
+  @ApiOperation({ summary: "Get user by id" })
+  @ApiBearerAuth()
+  @ApiParam({ name: "id", description: "User id" })
+  @ApiResponse({ status: 200, description: "Success" })
+  @ApiResponse({ status: 404, description: "User not found" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN", "SECURITY")
+  @Get(":id")
+  async getById(@Param("id") id: number) {
+    return await this.authService.getById(id);
+  }
 }
