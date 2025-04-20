@@ -12,6 +12,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { MailService } from './mail.service';
 import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class AuthService {
@@ -232,10 +233,13 @@ export class AuthService {
     });
   }
 
-  async getById(id: number) {
-    const [user] = await this.db.select().from(usersView)
+  async getById(user: UserInterface, id: number) {
+    if (user.role === "USER" && user.sub !== id) {
+      throw new HttpException("You are not authorized to access this resource", 403);
+    }
+    const [existingUser] = await this.db.select().from(usersView)
       .where(eq(usersView.id, id));
-    if (!user) throw new HttpException("User not found", 404);
-    return user;
+    if (!existingUser) throw new HttpException("User not found", 404);
+    return existingUser;
   }
 }
