@@ -38,7 +38,7 @@ export class VehicleService {
     };
   }
 
-  async getById(id: number) {
+  async getById(user: UserInterface, id: number) {
     const [vehicle] = await this.db.select().from(vehicles)
       .where(eq(vehicles.id, id))
       .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
@@ -46,6 +46,15 @@ export class VehicleService {
 
     if (!vehicle) {
       throw new HttpException("Vehicle not found", 404);
+    }
+
+    if (user.role === "USER" && vehicle.residences) {
+      const residenceList = await this.db.select().from(userResidences)
+        .where(eq(userResidences.userId, user.sub));
+      const residenceIds = residenceList.map((residence) => residence.residenceId);
+      if (!residenceIds.includes(vehicle.residences.id)) {
+        throw new HttpException("Not authorized to access this vehicle", 403);
+      }
     }
 
     return { ...vehicle.vehicles, residence: vehicle.residences };
