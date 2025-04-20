@@ -10,6 +10,8 @@ import { Roles } from 'src/decorators/role.decorator';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
 import { Throttle } from '@nestjs/throttler';
+import { User } from 'src/decorators/user.decorator';
+import { UserInterface } from 'src/common/types';
 
 @ApiTags("Authentication")
 @Controller('auth')
@@ -222,9 +224,9 @@ export class AuthController {
   @ApiResponse({ status: 200, description: "Success" })
   @ApiResponse({ status: 404, description: "User not found" })
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN", "SECURITY")
+  @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
-  async getById(@Param("id") id: number) {
-    return await this.authService.getById(id);
+  async getById(@User() user: UserInterface, @Param("id") id: number) {
+    return await this.authService.getById(user, id);
   }
 }
