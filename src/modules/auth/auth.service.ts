@@ -3,7 +3,7 @@ import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { userPrivileges, users } from 'src/database/schema';
+import { userPrivileges, users, usersView } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { JwtService } from '@nestjs/jwt';
 import env from 'src/common';
@@ -227,8 +227,15 @@ export class AuthService {
     }
     const usersList = await query;
     return usersList.map((user) => {
-      const { password, refreshToken, isVerified, ...safeUser } = user;
+      const { password, refreshToken, isVerified, createdAt, updatedAt, ...safeUser } = user;
       return safeUser;
     });
+  }
+
+  async getById(id: number) {
+    const [user] = await this.db.select().from(usersView)
+      .where(eq(usersView.id, id));
+    if (!user) throw new HttpException("User not found", 404);
+    return user;
   }
 }
