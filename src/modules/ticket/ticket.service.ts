@@ -246,7 +246,7 @@ export class TicketService {
         slot
       });
 
-      await tx.update(tickets).set({ updatedAt: (new Date()).toISOString() })
+      await tx.update(tickets).set({ status: "AVAILABLE", updatedAt: (new Date()).toISOString() })
         .where(eq(tickets.id, id));
     });
 
