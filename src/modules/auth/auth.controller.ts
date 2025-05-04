@@ -2,7 +2,7 @@ import { Body, Controller, Get, Headers, HttpCode, HttpException, Param, Patch, 
 import { AuthService } from './auth.service';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import e, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import env from 'src/common';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
