@@ -30,7 +30,7 @@ export class NotificationService {
       ]);
 
       return {
-        count: Math.ceil(countResult / limit),
+        maxPage: Math.ceil(countResult / limit),
         data: data.map(({ notification, userInfo }) => {
           const { from, to, ...rest } = notification;
           return { ...rest, from: userInfo };
@@ -59,7 +59,7 @@ export class NotificationService {
       ]);
 
       return {
-        count: Math.ceil(countResult / limit),
+        maxPage: Math.ceil(countResult / limit),
         data: data.map(({ notification, userInfo }) => {
           const { from, to, ...rest } = notification;
           return { ...rest, from: userInfo };

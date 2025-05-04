@@ -23,7 +23,7 @@ export class TicketService {
           .limit(limit).offset((page - 1) * limit)
       ]);
 
-      return { count: Math.ceil(countResult / limit), data };
+      return { maxPage: Math.ceil(countResult / limit), data };
     } else {
       [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(userTickets)
@@ -35,7 +35,7 @@ export class TicketService {
       ]);
 
       return {
-        count: Math.ceil(countResult / limit),
+        maxPage: Math.ceil(countResult / limit),
         data: data.map(({ tickets, user_tickets }) => {
           const { ticketId, ...rest } = user_tickets;
           return { ...tickets, ...rest };

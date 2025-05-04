@@ -17,7 +17,7 @@ export class VehicleService {
       .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
 
     return {
-      count: data.length,
+      maxPage: data.length,
       data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
     };
   }
@@ -33,7 +33,7 @@ export class VehicleService {
     ]);
 
     return {
-      count: Math.ceil(countResult / limit),
+      maxPage: Math.ceil(countResult / limit),
       data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
     };
   }
