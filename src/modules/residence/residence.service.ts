@@ -12,18 +12,16 @@ export class ResidenceService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface, page: number, limit: number) {
-    let countResult: number = 0;
-    let data: any[] = [];
     if (user.role === "ADMIN" || user.role === "SECURITY") {
-      [[{ countResult }], data] = await Promise.all([
+      const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(residences),
         this.db.select().from(residences)
           .limit(limit).offset((page - 1) * limit)
       ]);
 
-      return { count: Math.ceil(countResult / limit), data };
+      return { maxPage: Math.ceil(countResult / limit), data };
     } else {
-      [[{ countResult }], data] = await Promise.all([
+      const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(residences)
           .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
           .where(eq(userResidences.userId, user.sub)),
@@ -32,7 +30,7 @@ export class ResidenceService {
           .where(eq(userResidences.userId, user.sub))
       ]);
 
-      return { count: Math.ceil(countResult / limit), data: data.map(({ residence }) => residence) };
+      return { maxPage: Math.ceil(countResult / limit), data: data.map(({ residence }) => residence) };
     }
   }
 
@@ -63,7 +61,7 @@ export class ResidenceService {
       throw new HttpException("Not authorized to access this residence", 403);
     }
 
-    return { ...residence, vehicles: vehicleList, users: residentList };
+    return { ...residence, vehicles: vehicleList, residents: residentList };
   }
 
   async create({ building, room }: CreateResidenceDto) {

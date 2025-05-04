@@ -72,7 +72,7 @@ export class TransactionService {
       ]);
     }
 
-    return { count: Math.ceil(countResult / limit), data };
+    return { maxPage: Math.ceil(countResult / limit), data };
   }
 
   async getById(user: UserInterface, id: number) {
