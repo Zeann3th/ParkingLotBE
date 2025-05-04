@@ -61,7 +61,7 @@ export class ResidenceService {
       throw new HttpException("Not authorized to access this residence", 403);
     }
 
-    return { ...residence, vehicles: vehicleList, users: residentList };
+    return { ...residence, vehicles: vehicleList, residents: residentList };
   }
 
   async create({ building, room }: CreateResidenceDto) {
