@@ -2,7 +2,7 @@ import { Body, Controller, Get, Headers, HttpCode, HttpException, Param, Patch, 
 import { AuthService } from './auth.service';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import env from 'src/common';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
 import { RolesGuard } from 'src/guards/role.guard';
@@ -63,8 +63,8 @@ export class AuthController {
       secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/",
-      sameSite: "none",
-      partitioned: true,
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+      partitioned: env.NODE_ENV === "production",
     });
     return response.send({ access_token: accessToken });
   }
@@ -95,8 +95,8 @@ export class AuthController {
       secure: env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7,
       path: "/",
-      sameSite: "none",
-      partitioned: true,
+      sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+      partitioned: env.NODE_ENV === "production",
     });
     return response.status(204).send();
   }

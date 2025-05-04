@@ -121,37 +121,21 @@ export class ResidenceController {
 
   @ApiOperation({ summary: "Add resident to residence" })
   @ApiParam({ name: "id", required: true })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        userId: { type: "number", example: 1 }
-      },
-      required: ["userId"]
-    }
-  })
+  @ApiParam({ name: "userId", required: true })
   @ApiBearerAuth()
   @HttpCode(200)
   @ApiResponse({ status: 200, description: "User ${userId} added to residence ${id}" })
   @ApiResponse({ status: 404, description: "Residence not found" })
   @ApiResponse({ status: 404, description: "User not found" })
   @Roles("ADMIN")
-  @Post(":id/residents")
-  async addResident(@Param("id", ParseIntPipe) id: number, @Body("userId", ParseIntPipe) userId: number) {
+  @Post(":id/residents/:userId")
+  async addResident(@Param("id", ParseIntPipe) id: number, @Param("userId", ParseIntPipe) userId: number) {
     return await this.residenceService.addResident(id, userId);
   }
 
   @ApiOperation({ summary: "Remove resident from residence" })
   @ApiParam({ name: "id", required: true })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        userId: { type: "number", example: 1 }
-      },
-      required: ["userId"]
-    }
-  })
+  @ApiParam({ name: "userId", required: true })
   @ApiBearerAuth()
   @HttpCode(200)
   @ApiResponse({ status: 200, description: "User ${userId} removed from residence ${id}" })
@@ -159,44 +143,28 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "User not found" })
   @ApiResponse({ status: 404, description: "User not found in residence" })
   @Roles("ADMIN")
-  @Delete(":id/residents")
-  async removeResident(@Param("id", ParseIntPipe) id: number, @Body("userId", ParseIntPipe) userId: number) {
+  @Delete(":id/residents/:userId")
+  async removeResident(@Param("id", ParseIntPipe) id: number, @Param("userId", ParseIntPipe) userId: number) {
     return await this.residenceService.removeResident(id, userId);
   }
 
   @ApiOperation({ summary: "Add vehicle to residence" })
   @ApiParam({ name: "id", required: true })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        vehicleId: { type: "number", example: 1 }
-      },
-      required: ["vehicleId"]
-    }
-  })
+  @ApiParam({ name: "vehicleId", required: true })
   @ApiBearerAuth()
   @HttpCode(200)
   @ApiResponse({ status: 200, description: "Vehicle ${vehicleId} added to residence ${id}" })
   @ApiResponse({ status: 404, description: "Residence not found" })
   @ApiResponse({ status: 404, description: "Vehicle not found" })
   @Roles("ADMIN")
-  @Post(":id/vehicles")
-  async addVehicle(@Param("id", ParseIntPipe) id: number, @Body("vehicleId", ParseIntPipe) vehicleId: number) {
+  @Post(":id/vehicles/:vehicleId")
+  async addVehicle(@Param("id", ParseIntPipe) id: number, @Param("vehicleId", ParseIntPipe) vehicleId: number) {
     return await this.residenceService.addVehicle(id, vehicleId);
   }
 
   @ApiOperation({ summary: "Remove vehicle from residence" })
   @ApiParam({ name: "id", required: true })
-  @ApiBody({
-    type: "object",
-    schema: {
-      properties: {
-        vehicleId: { type: "number", example: 1 }
-      },
-      required: ["vehicleId"]
-    }
-  })
+  @ApiParam({ name: "vehicleId", required: true })
   @ApiBearerAuth()
   @HttpCode(200)
   @ApiResponse({ status: 200, description: "Vehicle ${vehicleId} removed from residence ${id}" })
@@ -204,8 +172,8 @@ export class ResidenceController {
   @ApiResponse({ status: 404, description: "Vehicle not found" })
   @ApiResponse({ status: 404, description: "Vehicle not found in residence" })
   @Roles("ADMIN")
-  @Delete(":id/vehicles")
-  async removeVehicle(@Param("id", ParseIntPipe) id: number, @Body("vehicleId", ParseIntPipe) vehicleId: number) {
+  @Delete(":id/vehicles/:vehicleId")
+  async removeVehicle(@Param("id", ParseIntPipe) id: number, @Param("vehicleId", ParseIntPipe) vehicleId: number) {
     return await this.residenceService.removeVehicle(id, vehicleId);
   }
 
