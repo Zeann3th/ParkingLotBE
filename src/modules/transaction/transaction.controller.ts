@@ -9,7 +9,6 @@ import { RolesGuard } from 'src/guards/role.guard';
 import { Roles } from 'src/decorators/role.decorator';
 import { ApiBearerAuth, ApiBody, ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { CreateTransactionDto, UpdateTransactionDto } from './dto/transaction.dto';
-import env from 'src/common';
 
 @Controller('transactions')
 export class TransactionController {
