@@ -134,7 +134,7 @@ export class TransactionService {
       embed_data: JSON.stringify({ redirectUrl: `${env.APP_URL}/transactions` }),
       callback_url: `http://localhost:${env.PORT}/v1/transactions/callback`,
       description: `Transaction for ticket purchase. Transaction ID: ${transaction.id}`,
-      bank_code: "zalopayapp",
+      bank_code: "",
     };
 
     const data =
@@ -149,8 +149,6 @@ export class TransactionService {
     order.mac = createHmac("sha256", env.GATEWAY.PUBLIC_KEY)
       .update(data)
       .digest("hex");
-
-    console.log("order", order);
 
     const res = await axios.post("https://sb-openapi.zalopay.vn/v2/create", null,
       { params: order }
@@ -176,50 +174,51 @@ export class TransactionService {
         };
       } else {
         const parsedData = JSON.parse(data);
-        const {appid, appuser, apptransid, amount} = parsedData;
+        const { appid, appuser, apptransid, amount } = parsedData;
         if (!appid || !appuser || !apptransid) {
           throw new HttpException("Missing required fields in data", 400);
         }
-        
+
         if (!appid || appid !== env.GATEWAY.APP_ID) {
-            throw new HttpException("Invalid app ID", 400);
+          throw new HttpException("Invalid app ID", 400);
         }
-        
-        const [_,transactionId] = apptransid.split("_");
+
+        const [_, transactionId] = apptransid.split("_");
         if (!transactionId || isNaN(Number(transactionId))) {
           throw new HttpException("Invalid transaction ID", 400);
         }
-        
+
         const [userId, username] = appuser.split("_");
         if (!userId || !username || isNaN(Number(userId))) {
           throw new HttpException("Invalid user information", 400);
         }
-        
-        const [{id}] = await this.db.select({id: transactions.id}).from(transactions)
-            .where(and(
-                eq(transactions.id, Number(transactionId)),
-                eq(transactions.userId, Number(userId)),
-                eq(transactions.status, "PENDING"),
-                eq(transactions.amount, amount)
-            ));
-        
+
+        const [{ id }] = await this.db.select({ id: transactions.id }).from(transactions)
+          .where(and(
+            eq(transactions.id, Number(transactionId)),
+            eq(transactions.userId, Number(userId)),
+            eq(transactions.status, "PENDING"),
+            eq(transactions.amount, amount)
+          ));
+
         if (!id) {
-            throw new HttpException("Transaction not found or already processed", 404);
+          throw new HttpException("Transaction not found or already processed", 404);
         }
-        
+
         await this.db.update(transactions)
           .set({
             status: "PAID",
             updatedAt: (new Date()).toISOString(),
           })
           .where(eq(transactions.id, id));
-        
+
         result = {
           return_code: 1,
           return_message: "success",
         };
       }
     } catch (err) {
+      console.error(err);
       result = {
         return_code: 0,
         return_message: (err as any).message,
