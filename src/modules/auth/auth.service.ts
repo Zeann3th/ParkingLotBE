@@ -3,7 +3,7 @@ import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { LoginUserDto, RegisterUserDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
-import { userPrivileges, users } from 'src/database/schema';
+import { userPrivileges, users, usersView } from 'src/database/schema';
 import { eq } from 'drizzle-orm';
 import { JwtService } from '@nestjs/jwt';
 import env from 'src/common';
@@ -12,6 +12,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { MailService } from './mail.service';
 import { ResetUserPasswordDto, VerifyUserEmailDto } from './dto/verify-user.dto';
+import { UserInterface } from 'src/common/types';
 
 @Injectable()
 export class AuthService {
@@ -68,7 +69,7 @@ export class AuthService {
 
     await this.db.update(users)
       .set({ refreshToken })
-      .where(eq(users.id, user.id))
+      .where(eq(users.id, user.id));
 
     return { accessToken, refreshToken };
   }
@@ -77,7 +78,7 @@ export class AuthService {
     if (refreshToken) {
       await this.db.update(users)
         .set({ refreshToken: null })
-        .where(eq(users.refreshToken, refreshToken))
+        .where(eq(users.refreshToken, refreshToken));
     }
     return;
   }
@@ -86,17 +87,17 @@ export class AuthService {
     if (!refreshToken) throw new HttpException("Refresh token is required", 401);
 
     try {
-      const decoded = this.jwtService.verify(refreshToken, { secret: env.JWT_REFRESH_SECRET })
+      const decoded = this.jwtService.verify(refreshToken, { secret: env.JWT_REFRESH_SECRET });
 
-      const [user] = await this.db.select().from(users).where(eq(users.refreshToken, refreshToken))
+      const [user] = await this.db.select().from(users).where(eq(users.refreshToken, refreshToken));
       if (!user) throw new HttpException("Invalid refresh token", 403);
 
-      const payload = { sub: user.id, username: user.username, role: user.role }
+      const payload = { sub: user.id, username: user.username, role: user.role };
 
       const accessToken = this.jwtService.sign(payload, {
         secret: env.JWT_ACCESS_SECRET,
         expiresIn: "15m"
-      })
+      });
       return { access_token: accessToken };
     } catch (e) {
       if (e.name === 'TokenExpiredError') {
@@ -215,5 +216,30 @@ export class AuthService {
     }
 
     return { message: "Email sent successfully" };
+  }
+
+  async search(name: string, email: string) {
+    const query = this.db.select().from(users);
+    if (name) {
+      query.where(eq(users.name, name));
+    }
+    if (email) {
+      query.where(eq(users.email, email));
+    }
+    const usersList = await query;
+    return usersList.map((user) => {
+      const { password, refreshToken, isVerified, createdAt, updatedAt, ...safeUser } = user;
+      return safeUser;
+    });
+  }
+
+  async getById(user: UserInterface, id: number) {
+    if (user.role === "USER" && user.sub !== id) {
+      throw new HttpException("You are not authorized to access this resource", 403);
+    }
+    const [existingUser] = await this.db.select().from(usersView)
+      .where(eq(usersView.id, id));
+    if (!existingUser) throw new HttpException("User not found", 404);
+    return existingUser;
   }
 }

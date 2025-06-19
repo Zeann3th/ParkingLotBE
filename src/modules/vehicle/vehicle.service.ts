@@ -2,7 +2,7 @@ import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, like } from 'drizzle-orm';
 import { UserInterface } from 'src/common/types';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
+import { residences, residenceVehicles, userResidences, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
@@ -17,7 +17,7 @@ export class VehicleService {
       .leftJoin(residences, eq(residences.id, residenceVehicles.residenceId));
 
     return {
-      count: data.length,
+      maxPage: data.length,
       data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
     };
   }
@@ -33,12 +33,12 @@ export class VehicleService {
     ]);
 
     return {
-      count: Math.ceil(countResult / limit),
+      maxPage: Math.ceil(countResult / limit),
       data: data.map(({ vehicle, residence }) => ({ ...vehicle, residence }))
     };
   }
 
-  async getById(id: number) {
+  async getById(user: UserInterface, id: number) {
     const [vehicle] = await this.db.select().from(vehicles)
       .where(eq(vehicles.id, id))
       .leftJoin(residenceVehicles, eq(residenceVehicles.vehicleId, vehicles.id))
@@ -46,6 +46,15 @@ export class VehicleService {
 
     if (!vehicle) {
       throw new HttpException("Vehicle not found", 404);
+    }
+
+    if (user.role === "USER" && vehicle.residences) {
+      const residenceList = await this.db.select().from(userResidences)
+        .where(eq(userResidences.userId, user.sub));
+      const residenceIds = residenceList.map((residence) => residence.residenceId);
+      if (!residenceIds.includes(vehicle.residences.id)) {
+        throw new HttpException("Not authorized to access this vehicle", 403);
+      }
     }
 
     return { ...vehicle.vehicles, residence: vehicle.residences };
@@ -76,8 +85,8 @@ export class VehicleService {
     }
 
     try {
-      await this.db.update(vehicles).set({ plate })
-        .where(eq(vehicles.id, id))
+      await this.db.update(vehicles).set({ plate, updatedAt: (new Date()).toISOString() })
+        .where(eq(vehicles.id, id));
     } catch (error: any) {
       if (error.code === 'SQLITE_CONSTRAINT') {
         throw new HttpException("Vehicle having this plate already exists", 409);

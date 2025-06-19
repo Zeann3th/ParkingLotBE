@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { and, count, eq } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
-import { residences, residenceVehicles, userResidences, users, vehicles } from 'src/database/schema';
+import { residences, residenceVehicles, userResidences, usersView, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { UpdateResidenceDto } from './dto/update-residence.dto';
@@ -12,18 +12,16 @@ export class ResidenceService {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) { }
 
   async getAll(user: UserInterface, page: number, limit: number) {
-    let countResult: number = 0;
-    let data: any[] = [];
     if (user.role === "ADMIN" || user.role === "SECURITY") {
-      [[{ countResult }], data] = await Promise.all([
+      const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(residences),
         this.db.select().from(residences)
           .limit(limit).offset((page - 1) * limit)
       ]);
 
-      return { count: Math.ceil(countResult / limit), data };
+      return { maxPage: Math.ceil(countResult / limit), data };
     } else {
-      [[{ countResult }], data] = await Promise.all([
+      const [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(residences)
           .leftJoin(userResidences, eq(userResidences.residenceId, residences.id))
           .where(eq(userResidences.userId, user.sub)),
@@ -32,7 +30,7 @@ export class ResidenceService {
           .where(eq(userResidences.userId, user.sub))
       ]);
 
-      return { count: Math.ceil(countResult / limit), data: data.map(({ residence }) => residence) };
+      return { maxPage: Math.ceil(countResult / limit), data: data.map(({ residence }) => residence) };
     }
   }
 
@@ -49,19 +47,21 @@ export class ResidenceService {
       .leftJoin(vehicles, eq(vehicles.id, residenceVehicles.vehicleId)))
       .map(({ vehicle }) => vehicle);
 
-    const residentList = (await this.db.select({ resident: users }).from(userResidences)
+    const residentList = (await this.db.select({
+      resident: {
+        id: usersView.id,
+        name: usersView.name,
+      }
+    }).from(userResidences)
       .where(eq(userResidences.residenceId, id))
-      .leftJoin(users, eq(users.id, userResidences.userId)))
-      .map(({ resident }) => {
-        const { password, refreshToken, ...safeUser } = resident!;
-        return safeUser;
-      });
+      .leftJoin(usersView, eq(usersView.id, userResidences.userId)))
+      .map(({ resident }) => resident);
 
     if (user.role !== "ADMIN" && user.role !== "SECURITY" && !residentList.some(resident => resident!.id === user.sub)) {
       throw new HttpException("Not authorized to access this residence", 403);
     }
 
-    return { ...residence, vehicles: vehicleList, users: residentList };
+    return { ...residence, vehicles: vehicleList, residents: residentList };
   }
 
   async create({ building, room }: CreateResidenceDto) {
@@ -85,23 +85,24 @@ export class ResidenceService {
     }
 
     const [residence] = await this.db.select().from(residences)
-      .where(eq(residences.id, id))
+      .where(eq(residences.id, id));
     if (!residence) {
       throw new HttpException("Residence not found", 404);
     }
 
     await this.db.update(residences).set({
       building: building ?? residence.building,
-      room: room ?? residence.room
+      room: room ?? residence.room,
+      updatedAt: (new Date()).toISOString()
     })
-      .where(eq(residences.id, id))
+      .where(eq(residences.id, id));
   }
 
   async addResident(id: number, userId: number) {
     const [[residence], [user]] = await Promise.all([
       this.db.select().from(residences).where(eq(residences.id, id)),
-      this.db.select().from(users).where(eq(users.id, userId))
-    ])
+      this.db.select().from(usersView).where(eq(usersView.id, userId))
+    ]);
 
     if (!residence) {
       throw new HttpException("Residence not found", 404);
@@ -116,14 +117,14 @@ export class ResidenceService {
       userId
     });
 
-    return { message: `User ${userId} added to residence ${id}` }
+    return { message: `User ${userId} added to residence ${id}` };
   }
 
   async removeResident(id: number, userId: number) {
     const [[residence], [user]] = await Promise.all([
       this.db.select().from(residences).where(eq(residences.id, id)),
-      this.db.select().from(users).where(eq(users.id, userId))
-    ])
+      this.db.select().from(usersView).where(eq(usersView.id, userId))
+    ]);
 
     if (!residence) {
       throw new HttpException("Residence not found", 404);
@@ -137,7 +138,7 @@ export class ResidenceService {
       .where(and(
         eq(userResidences.userId, userId),
         eq(userResidences.residenceId, id)
-      ))
+      ));
     if (!existUserInResidence) {
       throw new HttpException("User not found in residence", 404);
     }
@@ -145,16 +146,16 @@ export class ResidenceService {
     await this.db.delete(userResidences).where(and(
       eq(userResidences.userId, userId),
       eq(userResidences.residenceId, id)
-    ))
+    ));
 
-    return { message: `User ${userId} removed from residence ${id}` }
+    return { message: `User ${userId} removed from residence ${id}` };
   }
 
   async addVehicle(id: number, vehicleId: number) {
     const [[residence], [vehicle]] = await Promise.all([
       this.db.select().from(residences).where(eq(residences.id, id)),
       this.db.select().from(vehicles).where(eq(vehicles.id, vehicleId))
-    ])
+    ]);
 
     if (!residence) {
       throw new HttpException("Residence not found", 404);
@@ -169,14 +170,14 @@ export class ResidenceService {
       vehicleId
     });
 
-    return { message: `Vehicle ${vehicleId} added to residence ${id}` }
+    return { message: `Vehicle ${vehicleId} added to residence ${id}` };
   }
 
   async removeVehicle(id: number, vehicleId: number) {
     const [[residence], [vehicle]] = await Promise.all([
       this.db.select().from(residences).where(eq(residences.id, id)),
       this.db.select().from(vehicles).where(eq(vehicles.id, vehicleId))
-    ])
+    ]);
 
     if (!residence) {
       throw new HttpException("Residence not found", 404);
@@ -190,7 +191,7 @@ export class ResidenceService {
       .where(and(
         eq(residenceVehicles.residenceId, id),
         eq(residenceVehicles.vehicleId, vehicleId)
-      ))
+      ));
     if (!existVehicleInResidence) {
       throw new HttpException("Vehicle not found in residence", 404);
     }
@@ -198,21 +199,21 @@ export class ResidenceService {
     await this.db.delete(residenceVehicles).where(and(
       eq(residenceVehicles.residenceId, id),
       eq(residenceVehicles.vehicleId, vehicleId)
-    ))
+    ));
 
-    return { message: `Vehicle ${vehicleId} removed from residence ${id}` }
+    return { message: `Vehicle ${vehicleId} removed from residence ${id}` };
   }
 
 
   async delete(id: number) {
     const [residence] = await this.db.select().from(residences)
-      .where(eq(residences.id, id))
+      .where(eq(residences.id, id));
 
     if (!residence) {
       throw new HttpException("Residence not found", 404);
     }
 
-    await this.db.delete(residences).where(eq(residences.id, id))
+    await this.db.delete(residences).where(eq(residences.id, id));
     return;
   }
 }

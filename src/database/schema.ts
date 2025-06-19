@@ -1,4 +1,4 @@
-import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, sqliteView, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -13,32 +13,43 @@ export const users = sqliteTable("users", {
   updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
+export const usersView = sqliteView("user_views").as((qb) => qb.select({
+  id: users.id,
+  username: users.username,
+  name: users.name,
+  role: users.role,
+}).from(users));
+
 export const residences = sqliteTable("residences", {
   id: integer().primaryKey({ autoIncrement: true }),
   building: text().notNull(),
-  room: integer().notNull()
+  room: integer().notNull(),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   uniqueIndex("unique_residence_idx").on(table.building, table.room)
-])
+]);
 
 export const userResidences = sqliteTable("user_residences", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" })
 }, (table) => [
   primaryKey({ columns: [table.userId, table.residenceId], name: "pk_user_residences" }),
-])
+]);
 
 export const residenceVehicles = sqliteTable("residence_vehicles", {
   residenceId: integer("residence_id").notNull().references(() => residences.id, { onDelete: "cascade" }),
   vehicleId: integer("vehicle_id").notNull().references(() => vehicles.id, { onDelete: "cascade" })
 }, (table) => [
   primaryKey({ columns: [table.vehicleId, table.residenceId], name: "pk_residence_vehicles" }),
-])
+]);
 
 export const sections = sqliteTable("sections", {
   id: integer().primaryKey({ autoIncrement: true }),
   name: text().unique().notNull(),
   capacity: integer().notNull(),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
 export const userPrivileges = sqliteTable("user_privileges", {
@@ -52,6 +63,8 @@ export const vehicles = sqliteTable("vehicles", {
   id: integer().primaryKey({ autoIncrement: true }),
   plate: text().unique().notNull(),
   type: text({ enum: ["CAR", "MOTORBIKE"] }).notNull(),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
 export const vehicleReservations = sqliteTable("vehicle_reservations", {
@@ -66,6 +79,8 @@ export const tickets = sqliteTable("tickets", {
   id: integer().primaryKey({ autoIncrement: true }),
   type: text("type", { enum: ["MONTHLY", "DAILY", "RESERVED"] }).notNull(),
   status: text("status", { enum: ["AVAILABLE", "INUSE", "LOST", "CANCELED"] }).$default(() => "AVAILABLE").notNull(),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 });
 
 export const ticketPrices = sqliteTable("ticket_prices", {
@@ -101,9 +116,10 @@ export const notifications = sqliteTable("notifications", {
   message: text().notNull(),
   status: text("status", { enum: ["PENDING", "READ"] }).$default(() => "PENDING"),
   createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   index("to_idx").on(table.to)
-])
+]);
 
 export const transactions = sqliteTable("transactions", {
   id: integer().primaryKey({ autoIncrement: true }),
@@ -112,6 +128,8 @@ export const transactions = sqliteTable("transactions", {
   month: integer().notNull(),
   year: integer().notNull(),
   status: text("status", { enum: ["PENDING", "PAID"] }).$default(() => "PENDING").notNull(),
+  createdAt: text("created_at").$default(() => new Date().toISOString()).notNull(),
+  updatedAt: text("updated_at").$default(() => new Date().toISOString()).notNull(),
 }, (table) => [
   uniqueIndex("unique_transaction_idx").on(table.userId, table.month, table.year)
 ])

@@ -1,7 +1,7 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { DrizzleDB } from 'src/database/types/drizzle';
-import { sections, ticketPrices, tickets, users, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
+import { sections, ticketPrices, tickets, usersView, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { and, count, eq } from 'drizzle-orm';
 import { UpdateTicketDto, UpdateTicketPricingDto } from './dto/update-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -23,7 +23,7 @@ export class TicketService {
           .limit(limit).offset((page - 1) * limit)
       ]);
 
-      return { count: Math.ceil(countResult / limit), data };
+      return { maxPage: Math.ceil(countResult / limit), data };
     } else {
       [[{ countResult }], data] = await Promise.all([
         this.db.select({ countResult: count() }).from(userTickets)
@@ -35,9 +35,9 @@ export class TicketService {
       ]);
 
       return {
-        count: Math.ceil(countResult / limit),
+        maxPage: Math.ceil(countResult / limit),
         data: data.map(({ tickets, user_tickets }) => {
-          const { ticketId, ...rest } = user_tickets
+          const { ticketId, ...rest } = user_tickets;
           return { ...tickets, ...rest };
         })
       };
@@ -92,15 +92,15 @@ export class TicketService {
       }
 
       const [user] = await tx.select()
-        .from(users)
-        .where(eq(users.id, userId));
+        .from(usersView)
+        .where(eq(usersView.id, userId));
       if (!user) {
         throw new HttpException("User not found", 404);
       }
 
       const [vehicle] = await tx.select()
         .from(vehicles)
-        .where(eq(vehicles.id, vehicleId))
+        .where(eq(vehicles.id, vehicleId));
       if (!vehicle) {
         throw new HttpException("Vehicle not found", 404);
       }
@@ -128,7 +128,7 @@ export class TicketService {
 
         const [section] = await tx.select()
           .from(sections)
-          .where(eq(sections.id, sectionId))
+          .where(eq(sections.id, sectionId));
         if (!section) {
           throw new HttpException("Section not found", 404);
         }
@@ -184,7 +184,8 @@ export class TicketService {
 
     const [updatedTicket] = await this.db.update(tickets).set({
       type: type ?? ticket.type,
-      status: status ?? ticket.status
+      status: status ?? ticket.status,
+      updatedAt: (new Date()).toISOString(),
     }).where(eq(tickets.id, id)).returning();
     return updatedTicket;
   }
@@ -233,7 +234,7 @@ export class TicketService {
         .where(and(
           eq(vehicleReservations.sectionId, sectionId),
           eq(vehicleReservations.slot, slot)
-        ))
+        ));
 
       if (existingSlot) {
         throw new HttpException(`Slot ${slot}, section ${section.name} is already reserved`, 409);
@@ -244,12 +245,15 @@ export class TicketService {
         sectionId,
         slot
       });
+
+      await tx.update(tickets).set({ status: "AVAILABLE", updatedAt: (new Date()).toISOString() })
+        .where(eq(tickets.id, id));
     });
 
     return { message: "Slot reserved successfully" };
   }
 
-  async cancel(user: UserInterface, id: number, sectionId: number) {
+  async cancel(user: UserInterface, id: number) {
     await this.db.transaction(async (tx) => {
 
       const [{ ticket, userTicket, vehicle }] = await tx
@@ -275,14 +279,7 @@ export class TicketService {
         throw new HttpException("Vehicle not found", 400);
       }
 
-      const [section] = await tx.select().from(sections)
-        .where(eq(sections.id, sectionId));
-
-      if (!section) {
-        throw new HttpException("Section not found", 404);
-      }
-
-      await tx.update(tickets).set({ status: "CANCELED" })
+      await tx.update(tickets).set({ status: "CANCELED", updatedAt: (new Date()).toISOString() })
         .where(eq(tickets.id, id));
 
       if (ticket.type !== "RESERVED") {
@@ -290,19 +287,13 @@ export class TicketService {
       }
 
       const [existingSlot] = await tx.select().from(vehicleReservations)
-        .where(and(
-          eq(vehicleReservations.ticketId, ticket.id),
-          eq(vehicleReservations.sectionId, sectionId)
-        ));
+        .where(eq(vehicleReservations.ticketId, ticket.id));
 
       if (!existingSlot) {
         throw new HttpException("No reservation found for this ticket in the specified section", 400);
       }
 
-      await tx.delete(vehicleReservations).where(and(
-        eq(vehicleReservations.ticketId, ticket.id),
-        eq(vehicleReservations.sectionId, sectionId)
-      ));
+      await tx.delete(vehicleReservations).where(eq(vehicleReservations.ticketId, ticket.id));
     });
 
     return { message: "User's subscription canceled, slot unreserved" };

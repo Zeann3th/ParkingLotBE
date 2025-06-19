@@ -41,10 +41,10 @@ export class VehicleController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Returns vehicle with their residence info (if exist)" })
   @ApiResponse({ status: 403, description: "Not authorized to access this vehicle" })
-  @Roles("ADMIN", "SECURITY")
+  @Roles("ADMIN", "SECURITY", "USER")
   @Get(":id")
-  async getById(@Param("id", ParseIntPipe) id: number) {
-    return await this.vehicleService.getById(id);
+  async getById(@User() user: UserInterface, @Param("id", ParseIntPipe) id: number) {
+    return await this.vehicleService.getById(user, id);
   }
 
   @ApiOperation({ summary: "Create/Register a vehicle" })
