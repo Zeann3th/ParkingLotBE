@@ -175,7 +175,7 @@ export class TicketController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: "Ticket updated successfully" })
   @ApiResponse({ status: 400, description: "Missing required fields in payload" })
-  @Roles("ADMIN")
+  @Roles("ADMIN", "SECURITY")
   @Patch(":id")
   async update(@Param("id", ParseIntPipe) id: number, @Body() body: UpdateTicketDto) {
     return await this.ticketService.update(id, body);
