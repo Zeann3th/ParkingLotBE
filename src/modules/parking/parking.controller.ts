@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ParkingService } from './parking.service';
 import { CheckInDto } from './dto/check-in.dto';
 import { JwtAuthGuard } from 'src/guards/jwt.guard';
@@ -11,7 +11,6 @@ import { UserInterface } from 'src/common/types';
 
 @Controller('parking')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("ADMIN", "SECURITY")
 export class ParkingController {
   constructor(private readonly parkingService: ParkingService) { }
 
@@ -36,6 +35,7 @@ export class ParkingController {
   @ApiResponse({ status: 400, description: "Invalid ticket" })
   @ApiResponse({ status: 400, description: "Section is full" })
   @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
   @Post("check-in")
   async checkIn(@User() user: UserInterface, @Body() body: CheckInDto) {
     return await this.parkingService.checkIn(user, body);
@@ -63,6 +63,7 @@ export class ParkingController {
   @ApiResponse({ status: 404, description: "User ticket not found" })
   @HttpCode(200)
   @ApiBearerAuth()
+  @Roles("ADMIN", "SECURITY")
   @Post("check-out")
   async checkOut(@User() user: UserInterface, @Body() body: CheckOutDto) {
     return await this.parkingService.checkOut(user, body);

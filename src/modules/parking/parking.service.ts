@@ -1,11 +1,11 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
-import { and, count, desc, eq, gt, isNull, ne, notInArray } from 'drizzle-orm';
+import { and, count, eq, isNull, ne, notInArray } from 'drizzle-orm';
 import { DRIZZLE } from 'src/database/drizzle.module';
 import { history, sections, ticketPrices, tickets, userTickets, vehicleReservations, vehicles } from 'src/database/schema';
 import { DrizzleDB } from 'src/database/types/drizzle';
 import { CheckInDto } from './dto/check-in.dto';
 import { CheckOutDto } from './dto/check-out.dto';
-import { TicketType, VehicleType } from 'src/database/types';
+import { VehicleType } from 'src/database/types';
 import { UserInterface } from 'src/common/types';
 
 @Injectable()
